@@ -1,0 +1,9 @@
+{
+  "id": "lecture-recorder",
+  "name": "Voice Notes Assistant",
+  "version": "0.1.0",
+  "minAppVersion": "1.0.0",
+  "description": "会议/课堂录音、语音转写与 AI 纪要一体化助手",
+  "author": "chenqiyu",
+  "isDesktopOnly": true
+}
