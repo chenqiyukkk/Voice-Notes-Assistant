@@ -2,6 +2,17 @@
 
 Voice Notes Assistant is an Obsidian plugin for recording, transcription, and AI summaries in lecture and meeting workflows.
 
+## Documentation Website
+
+- Source page: [`docs/index.html`](docs/index.html)
+- Local preview: open `docs/index.html` in your browser
+- GitHub Pages (recommended):
+  1. Repository `Settings -> Pages`
+  2. Source: `Deploy from a branch`
+  3. Branch: `main`, Folder: `/docs`
+  4. Site URL will be:
+     `https://chenqiyukkk.github.io/Voice-Notes-Assistant/`
+
 ## Plugin Metadata
 
 - Plugin ID: `lecture-recorder`
