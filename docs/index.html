@@ -3,329 +3,306 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Voice Notes Assistant 使用指南</title>
+    <title>Voice Notes Assistant · Product Website</title>
     <meta
       name="description"
-      content="Voice Notes Assistant（Obsidian 插件）完整使用指南：录音、转写、AI 纪要、批处理、隐私与排错。"
+      content="Voice Notes Assistant 的产品官网：录音、转写、AI 纪要、批处理、自动化与部署指南。"
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <div class="topbar-inner">
-        <a href="#top" class="brand">Voice Notes Assistant</a>
+    <div class="orb orb-a" aria-hidden="true"></div>
+    <div class="orb orb-b" aria-hidden="true"></div>
+    <div class="orb orb-c" aria-hidden="true"></div>
+    <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="#overview">Voice Notes Assistant</a>
         <nav class="nav">
           <a href="#workflow">工作流</a>
-          <a href="#install">安装</a>
-          <a href="#settings">设置详解</a>
+          <a href="#features">能力</a>
+          <a href="#setup">上手</a>
           <a href="#commands">命令</a>
           <a href="#faq">FAQ</a>
         </nav>
-        <a class="repo-btn" href="https://github.com/chenqiyukkk/Voice-Notes-Assistant" target="_blank" rel="noreferrer">GitHub Repo</a>
+        <a
+          class="nav-btn"
+          href="https://github.com/chenqiyukkk/Voice-Notes-Assistant"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub
+        </a>
       </div>
     </header>
 
-    <main id="top">
-      <section class="hero section">
-        <div class="hero-copy">
-          <p class="eyebrow">Obsidian Community Plugin · Desktop Only</p>
-          <h1>把课堂录音直接变成可复习笔记</h1>
-          <p class="subtitle">
-            Voice Notes Assistant 是一个面向课程、会议和访谈场景的 Obsidian 插件，提供录音、转写、AI 纪要、批处理和时间戳跳转的一体化流程。
-          </p>
-          <div class="chips">
-            <span>插件 ID: <code>lecture-recorder</code></span>
-            <span>当前版本: <code>0.1.1</code></span>
-            <span>最低 Obsidian: <code>1.0.0</code></span>
-          </div>
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="#quickstart">10 分钟快速上手</a>
-            <a class="btn btn-ghost" href="#install">查看安装方式</a>
-          </div>
-        </div>
-        <aside class="hero-card">
-          <h2>你会得到什么</h2>
-          <ul>
-            <li>笔记内嵌播放器（<code>```lecture-audio</code>）</li>
-            <li>支持 OpenAI Whisper / iFLYTEK / 本地 whisper.cpp</li>
-            <li>支持 OpenAI-Compatible / Claude 生成纪要</li>
-            <li>自动缓存：<code>.transcript.json</code> + <code>.summary.md</code></li>
-            <li>录音列表批量转写、批量纪要、批量一键全流程</li>
-          </ul>
-        </aside>
-      </section>
-
-      <section class="section screenshots">
-        <div class="section-head">
-          <h2>界面预览</h2>
-          <p>下方截图来自当前仓库内的真实插件界面。</p>
-        </div>
-        <div class="gallery">
-          <figure class="shot">
-            <img src="./assets/light.png" alt="Voice Notes Assistant light UI" loading="lazy" />
-            <figcaption>Light Theme</figcaption>
-          </figure>
-          <figure class="shot">
-            <img src="./assets/dark.png" alt="Voice Notes Assistant dark UI" loading="lazy" />
-            <figcaption>Dark Theme</figcaption>
-          </figure>
-        </div>
-      </section>
-
-      <section class="section" id="quickstart">
-        <div class="section-head">
-          <h2>10 分钟快速上手</h2>
-        </div>
-        <ol class="timeline">
-          <li>
-            <h3>1. 打开设置页</h3>
-            <p><code>Settings → Community plugins → Voice Notes Assistant</code></p>
-          </li>
-          <li>
-            <h3>2. 配置转写服务</h3>
-            <p>优先推荐 <code>OpenAI Whisper</code>；中文场景可选 <code>iFLYTEK</code>；隐私优先可选本地 <code>whisper.cpp</code>。</p>
-          </li>
-          <li>
-            <h3>3. 配置纪要服务</h3>
-            <p>选择 <code>OpenAI-compatible</code> 或 <code>Claude</code>，填写 API Key 和模型名。</p>
-          </li>
-          <li>
-            <h3>4. 开始录音</h3>
-            <p>在笔记中执行命令 <code>开始/停止录音</code>，结束后会自动插入音频块。</p>
-          </li>
-          <li>
-            <h3>5. 生成内容</h3>
-            <p>点击音频块中的 <code>转写录音</code> 和 <code>生成纪要</code> 按钮查看结果。</p>
-          </li>
-          <li>
-            <h3>6. 复习时回听关键点</h3>
-            <p>执行 <code>插入时间戳</code>，点击时间戳 callout 可跳转到对应音频位置。</p>
-          </li>
-        </ol>
-      </section>
-
-      <section class="section" id="workflow">
-        <div class="section-head">
-          <h2>完整工作流</h2>
-        </div>
-        <div class="workflow-grid">
-          <article>
-            <h3>录音阶段</h3>
-            <p>通过 Ribbon 图标或命令面板开始录音，支持暂停/继续，保存路径默认为 <code>recordings/</code>。</p>
-          </article>
-          <article>
-            <h3>嵌入阶段</h3>
-            <p>录音停止后，插件会把占位块替换为可播放的 <code>lecture-audio</code> 代码块。</p>
-          </article>
-          <article>
-            <h3>转写阶段</h3>
-            <p>转写成功后会生成 <code>音频文件名.transcript.json</code>，后续会优先命中缓存。</p>
-          </article>
-          <article>
-            <h3>纪要阶段</h3>
-            <p>纪要会展示在播放器折叠区，并保存为 <code>音频文件名.summary.md</code>。</p>
-          </article>
-          <article>
-            <h3>批处理阶段</h3>
-            <p>在录音面板可执行批量转写/批量纪要/批量全流程，适合一周课程统一整理。</p>
-          </article>
-          <article>
-            <h3>自动化阶段</h3>
-            <p>开启 <code>Auto Transcribe</code> + <code>Auto Summarize</code> 后，录音结束即可自动跑完整链路。</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="section" id="install">
-        <div class="section-head">
-          <h2>安装方式</h2>
-        </div>
-        <div class="cards">
-          <article class="card">
-            <h3>方式 A: 本地开发安装</h3>
-            <pre><code class="language-bash">npm install
-npm run build</code></pre>
-            <p>把仓库放到 Vault 的 <code>.obsidian/plugins/lecture-recorder</code>，在 Obsidian 里重载插件后启用。</p>
-          </article>
-          <article class="card">
-            <h3>方式 B: 仓库发布包</h3>
-            <p>每个 Release 需要同时上传：</p>
-            <ul>
-              <li><code>manifest.json</code></li>
-              <li><code>main.js</code></li>
-              <li><code>styles.css</code></li>
+    <main>
+      <section class="hero reveal" id="overview">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <p class="kicker">Obsidian Community Plugin · Desktop</p>
+            <h1>听课 1 小时，复习 10 分钟。</h1>
+            <p class="lead">
+              在同一条工作流里完成录音、转写、AI 纪要和批量处理。Voice Notes Assistant
+              把课堂信息变成真正可复习、可定位、可追溯的笔记资产。
+            </p>
+            <div class="hero-actions">
+              <a class="btn primary" href="#setup">10 分钟快速上手</a>
+              <a class="btn ghost" href="#workflow">查看完整工作流</a>
+            </div>
+            <ul class="meta">
+              <li>Plugin ID: <code>lecture-recorder</code></li>
+              <li>Version: <code>0.1.1</code></li>
+              <li>Min Obsidian: <code>1.0.0</code></li>
             </ul>
-          </article>
-          <article class="card">
-            <h3>方式 C: 社区插件提交流程</h3>
-            <p>仓库必须包含：</p>
-            <ul>
-              <li><code>README.md</code></li>
-              <li><code>LICENSE</code></li>
-              <li><code>manifest.json</code></li>
-              <li><code>versions.json</code></li>
-            </ul>
-          </article>
+            <div class="stats">
+              <article class="stat-card">
+                <p class="stat-num" data-count="3">0</p>
+                <p class="stat-label">转写 Provider</p>
+              </article>
+              <article class="stat-card">
+                <p class="stat-num" data-count="2">0</p>
+                <p class="stat-label">纪要 Provider</p>
+              </article>
+              <article class="stat-card">
+                <p class="stat-num" data-count="6">0</p>
+                <p class="stat-label">核心命令</p>
+              </article>
+            </div>
+          </div>
+
+          <aside class="hero-device">
+            <div class="screen-controls" role="tablist" aria-label="UI preview selector">
+              <button class="screen-btn is-active" data-target="light" type="button">Light UI</button>
+              <button class="screen-btn" data-target="dark" type="button">Dark UI</button>
+            </div>
+            <div class="device-frame">
+              <img
+                src="./assets/light.png"
+                alt="Voice Notes Assistant Light UI"
+                class="screen-shot is-active"
+                data-shot="light"
+                loading="lazy"
+              />
+              <img
+                src="./assets/dark.png"
+                alt="Voice Notes Assistant Dark UI"
+                class="screen-shot"
+                data-shot="dark"
+                loading="lazy"
+              />
+            </div>
+            <p class="device-caption">真实插件截图，来自当前仓库发布版本。</p>
+          </aside>
         </div>
       </section>
 
-      <section class="section" id="settings">
-        <div class="section-head">
-          <h2>设置项详解</h2>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>模块</th>
-                <th>关键项</th>
-                <th>建议</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>录音</td>
-                <td><code>recordingStoragePath</code> / <code>audioFormat</code> / <code>audioQuality</code></td>
-                <td>新手保持默认：<code>recordings</code> + <code>wav</code> + <code>standard</code></td>
-              </tr>
-              <tr>
-                <td>转写 Provider</td>
-                <td><code>whisper</code> / <code>xfyun</code> / <code>local-whisper</code></td>
-                <td>中文课程优先测试 iFLYTEK；隐私优先用本地 whisper.cpp</td>
-              </tr>
-              <tr>
-                <td>纪要 Provider</td>
-                <td><code>openai-compat</code> / <code>claude</code></td>
-                <td>课程整理场景建议低温度（插件内默认 <code>temperature=0.3</code>）</td>
-              </tr>
-              <tr>
-                <td>自动化</td>
-                <td><code>autoTranscribe</code> / <code>autoSummarize</code></td>
-                <td>确认 API 可用后再开启，避免每次录音自动消耗额度</td>
-              </tr>
-              <tr>
-                <td>长文本优化</td>
-                <td><code>summaryEnableHierarchical</code> / <code>summaryChunkCharLimit</code></td>
-                <td>90 分钟以上录音建议保持分段总结开启</td>
-              </tr>
-              <tr>
-                <td>播放体验</td>
-                <td><code>waveformEnabled</code> / <code>waveformMaxFileSizeMB</code></td>
-                <td>老设备可关闭波形或调小阈值减少卡顿</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="section" id="commands">
-        <div class="section-head">
-          <h2>命令清单（Command Palette）</h2>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>命令名称</th>
-                <th>命令 ID</th>
-                <th>用途</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>开始/停止录音</td>
-                <td><code>toggle-recording</code></td>
-                <td>在当前笔记中创建/结束录音会话</td>
-              </tr>
-              <tr>
-                <td>暂停/继续录音</td>
-                <td><code>pause-resume-recording</code></td>
-                <td>不中断会话的情况下切换录音状态</td>
-              </tr>
-              <tr>
-                <td>插入时间戳</td>
-                <td><code>insert-timestamp</code></td>
-                <td>插入可点击跳转的时间戳 callout</td>
-              </tr>
-              <tr>
-                <td>打开录音面板</td>
-                <td><code>open-recorder-panel</code></td>
-                <td>打开右侧控制面板与录音列表</td>
-              </tr>
-              <tr>
-                <td>批量转写全部录音</td>
-                <td><code>batch-transcribe-recordings</code></td>
-                <td>对未转写录音批量执行转写</td>
-              </tr>
-              <tr>
-                <td>批量转写并总结全部录音</td>
-                <td><code>batch-transcribe-and-summarize-recordings</code></td>
-                <td>一键执行转写+纪要</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="section">
-        <div class="section-head">
-          <h2>文件结构与产物</h2>
-        </div>
-        <pre><code class="language-text">vault/
-└─ recordings/
-   ├─ recording-2026-02-26-101530-233.wav
-   ├─ recording-2026-02-26-101530-233.wav.transcript.json
-   └─ recording-2026-02-26-101530-233.wav.summary.md</code></pre>
-        <p>笔记中会插入如下块：</p>
-        <pre><code class="language-markdown">```lecture-audio
+      <section class="section reveal" id="workflow">
+        <div class="container">
+          <header class="section-head">
+            <p class="section-kicker">Workflow</p>
+            <h2>从音频到纪要，保持一条可验证链路</h2>
+          </header>
+          <div class="workflow-layout">
+            <aside class="workflow-sticky">
+              <div class="sticky-card">
+                <p class="sticky-kicker">笔记中自动插入</p>
+                <pre><code>```lecture-audio
 file: recordings/recording-2026-02-26-101530-233.wav
 title: 计算机组成原理
 duration: 00:47:12
 ```</code></pre>
+                <p class="sticky-note">转写缓存：<code>.transcript.json</code><br />纪要缓存：<code>.summary.md</code></p>
+              </div>
+            </aside>
+            <ol class="workflow-steps">
+              <li>
+                <span>01</span>
+                <div>
+                  <h3>开始录音</h3>
+                  <p>命令 <code>开始/停止录音</code> 或点击 Ribbon。支持暂停/继续，默认保存到 <code>recordings/</code>。</p>
+                </div>
+              </li>
+              <li>
+                <span>02</span>
+                <div>
+                  <h3>自动嵌入播放器</h3>
+                  <p>录音结束后占位块会自动替换为可播放的 <code>lecture-audio</code> 音频块。</p>
+                </div>
+              </li>
+              <li>
+                <span>03</span>
+                <div>
+                  <h3>执行转写</h3>
+                  <p>支持 OpenAI Whisper、iFLYTEK 和本地 whisper.cpp，命中缓存时会直接复用结果。</p>
+                </div>
+              </li>
+              <li>
+                <span>04</span>
+                <div>
+                  <h3>生成纪要</h3>
+                  <p>支持 OpenAI-compatible 与 Claude，输出结构化 Markdown，支持分段合并长文总结。</p>
+                </div>
+              </li>
+              <li>
+                <span>05</span>
+                <div>
+                  <h3>时间戳复习</h3>
+                  <p>命令 <code>插入时间戳</code>，点击 callout 即可跳转到当前活跃播放器的对应时间。</p>
+                </div>
+              </li>
+              <li>
+                <span>06</span>
+                <div>
+                  <h3>批处理一周课程</h3>
+                  <p>录音管理面板可批量转写、批量纪要或一键执行两步流程。</p>
+                </div>
+              </li>
+            </ol>
+          </div>
+        </div>
       </section>
 
-      <section class="section" id="faq">
-        <div class="section-head">
-          <h2>FAQ 与排错</h2>
-        </div>
-        <div class="faq-list">
-          <details>
-            <summary>录音启动失败，提示麦克风权限问题</summary>
-            <p>检查系统麦克风权限、浏览器内核权限（Obsidian Electron），并重启 Obsidian 后重试。</p>
-          </details>
-          <details>
-            <summary>转写失败，提示配置未完成</summary>
-            <p>确认你当前选择的转写 Provider 已填写完整配置。例如 Whisper 需要 API Key、Base URL、Model。</p>
-          </details>
-          <details>
-            <summary>纪要按钮点了没内容</summary>
-            <p>先确认是否存在有效转写文本；纪要服务依赖转写内容，转写为空时会提示先完成转写。</p>
-          </details>
-          <details>
-            <summary>长录音总结效果不稳定</summary>
-            <p>开启分段总结并调低分段阈值；必要时分主题录音，减少单次上下文压力。</p>
-          </details>
-          <details>
-            <summary>页面如何发布为 GitHub Pages？</summary>
-            <p>仓库 Settings → Pages → Source 选择 <code>Deploy from a branch</code>，分支选 <code>main</code>，目录选 <code>/docs</code>。</p>
-          </details>
+      <section class="section reveal" id="features">
+        <div class="container">
+          <header class="section-head">
+            <p class="section-kicker">Capabilities</p>
+            <h2>专业场景的关键能力，不是 Demo 功能</h2>
+          </header>
+          <div class="feature-grid">
+            <article class="feature-card">
+              <h3>多 Provider 转写</h3>
+              <p>云端与离线兼容，按场景切换成本、速度、隐私策略。</p>
+            </article>
+            <article class="feature-card">
+              <h3>层级化长文纪要</h3>
+              <p>长课堂先分段摘要再合并，降低上下文长度导致的输出漂移。</p>
+            </article>
+            <article class="feature-card">
+              <h3>播放器内联结果</h3>
+              <p>转写/纪要直接跟随播放器展示，阅读与回听不再跨页面跳转。</p>
+            </article>
+            <article class="feature-card">
+              <h3>可复用 Sidecar 缓存</h3>
+              <p>每个音频对应标准化缓存文件，便于版本管理与二次加工。</p>
+            </article>
+            <article class="feature-card">
+              <h3>批量处理面板</h3>
+              <p>一次处理多个录音，特别适合课程周更、会议周报场景。</p>
+            </article>
+            <article class="feature-card">
+              <h3>中英双语 UI</h3>
+              <p>插件设置内可切换中文/英文界面，适配不同使用习惯。</p>
+            </article>
+          </div>
         </div>
       </section>
 
-      <section class="section">
-        <div class="section-head">
-          <h2>隐私与数据边界</h2>
+      <section class="section reveal" id="setup">
+        <div class="container split">
+          <article class="panel">
+            <p class="section-kicker">Quick Start</p>
+            <h2>10 分钟配置完成</h2>
+            <ol class="setup-list">
+              <li>设置页中先配置转写 Provider（Whisper / iFLYTEK / Local）。</li>
+              <li>配置纪要 Provider（OpenAI-compatible / Claude）。</li>
+              <li>执行 <code>开始/停止录音</code> 获取第一段音频块。</li>
+              <li>点击 <code>转写录音</code> 与 <code>生成纪要</code>。</li>
+              <li>可选开启 <code>Auto Transcribe</code> 与 <code>Auto Summarize</code>。</li>
+            </ol>
+          </article>
+          <article class="panel">
+            <p class="section-kicker">Install & Release</p>
+            <h2>本地与发布流程</h2>
+            <pre><code>npm install
+npm run build</code></pre>
+            <p class="panel-note">本地安装目录：<code>.obsidian/plugins/lecture-recorder</code></p>
+            <p class="panel-note">Release 必传：<code>manifest.json</code>、<code>main.js</code>、<code>styles.css</code></p>
+            <p class="panel-note">社区提交仓库必备：<code>README.md</code>、<code>LICENSE</code>、<code>manifest.json</code>、<code>versions.json</code></p>
+          </article>
         </div>
-        <ul class="privacy-list">
-          <li>录音与缓存默认保存到你的 Vault 本地目录。</li>
-          <li>只有你主动执行云端转写/纪要时，音频或文本才会发送到所选 API 服务商。</li>
-          <li>使用本地 <code>whisper.cpp</code> 时，转写可全程离线。</li>
-        </ul>
+      </section>
+
+      <section class="section reveal" id="settings">
+        <div class="container">
+          <header class="section-head">
+            <p class="section-kicker">Configuration</p>
+            <h2>关键设置建议</h2>
+          </header>
+          <div class="setting-grid">
+            <article>
+              <h3>录音参数</h3>
+              <p>默认推荐 <code>wav</code> + <code>standard</code>，兼容性与质量更稳。</p>
+            </article>
+            <article>
+              <h3>自动化开关</h3>
+              <p>确认额度和 API 稳定后，再开启自动转写和自动纪要。</p>
+            </article>
+            <article>
+              <h3>长文本策略</h3>
+              <p>保持分段总结开启，90 分钟以上课程建议调低分段阈值。</p>
+            </article>
+            <article>
+              <h3>波形渲染</h3>
+              <p>设备性能偏弱时可关闭波形或降低大小阈值减少卡顿。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section reveal" id="commands">
+        <div class="container">
+          <header class="section-head">
+            <p class="section-kicker">Command Palette</p>
+            <h2>核心命令清单</h2>
+          </header>
+          <div class="command-grid">
+            <article><h3>开始/停止录音</h3><p><code>toggle-recording</code></p></article>
+            <article><h3>暂停/继续录音</h3><p><code>pause-resume-recording</code></p></article>
+            <article><h3>插入时间戳</h3><p><code>insert-timestamp</code></p></article>
+            <article><h3>打开录音面板</h3><p><code>open-recorder-panel</code></p></article>
+            <article><h3>批量转写全部录音</h3><p><code>batch-transcribe-recordings</code></p></article>
+            <article><h3>批量转写并总结全部录音</h3><p><code>batch-transcribe-and-summarize-recordings</code></p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section reveal" id="faq">
+        <div class="container">
+          <header class="section-head">
+            <p class="section-kicker">FAQ</p>
+            <h2>常见问题</h2>
+          </header>
+          <div class="faq-list">
+            <details>
+              <summary>录音失败或提示麦克风权限不足</summary>
+              <p>检查系统麦克风授权与 Obsidian 权限，重启后重试。</p>
+            </details>
+            <details>
+              <summary>转写/纪要提示配置缺失</summary>
+              <p>确认当前所选 Provider 对应的 API Key、URL、模型名已填写完整。</p>
+            </details>
+            <details>
+              <summary>纪要内容为空</summary>
+              <p>先确认转写结果是否包含有效文本；纪要生成依赖转写内容。</p>
+            </details>
+            <details>
+              <summary>如何发布这个网页</summary>
+              <p>GitHub Pages 选择 <code>main</code> 分支和 <code>/docs</code> 目录即可。</p>
+            </details>
+          </div>
+        </div>
       </section>
     </main>
 
-    <footer class="footer">
-      <p>Voice Notes Assistant · MIT License · by <a href="https://github.com/chenqiyukkk" target="_blank" rel="noreferrer">chenqiyukkk</a></p>
+    <footer class="site-footer">
+      <div class="container footer-shell">
+        <p>Voice Notes Assistant · MIT License · by chenqiyukkk</p>
+        <p>Privacy: 默认本地存储，只有你主动调用云端 API 时才会发送数据。</p>
+      </div>
     </footer>
+
+    <script src="./script.js"></script>
   </body>
 </html>
