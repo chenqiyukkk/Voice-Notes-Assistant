@@ -1,13 +1,21 @@
 {
   "name": "obsidian-lecture-recorder",
-  "version": "0.1.0",
-  "description": "会议/课堂语音记录、转写与 AI 纪要的一体化 Obsidian 插件",
+  "version": "0.1.1",
+  "description": "Obsidian plugin for recording, transcription, and AI summaries.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "build": "node esbuild.config.mjs production"
+    "build": "node esbuild.config.mjs production",
+    "version:bump": "node scripts/version-bump.mjs",
+    "release:check": "npm run build && node scripts/release-check.mjs"
   },
-  "keywords": ["obsidian", "lecture", "recorder", "transcription", "summary"],
+  "keywords": [
+    "obsidian",
+    "lecture",
+    "recorder",
+    "transcription",
+    "summary"
+  ],
   "author": "chenqiyu",
   "license": "MIT",
   "devDependencies": {

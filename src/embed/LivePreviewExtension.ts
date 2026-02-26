@@ -159,7 +159,7 @@ class AudioPlayerWidget extends WidgetType {
       cls: 'play-btn',
       attr: { 'aria-label': this.t('player.play.aria') },
     });
-    playBtn.innerHTML = '▶';
+    playBtn.textContent = '▶';
 
     // 进度条
     const progressContainer = controlsEl.createDiv({ cls: 'progress-container' });
@@ -220,18 +220,18 @@ class AudioPlayerWidget extends WidgetType {
     });
 
     audio.addEventListener('play', () => {
-      playBtn.innerHTML = '⏸';
+      playBtn.textContent = '⏸';
       playBtn.addClass('playing');
       AudioEmbedProcessor.setActiveAudio(audio, params.file);
     });
 
     audio.addEventListener('pause', () => {
-      playBtn.innerHTML = '▶';
+      playBtn.textContent = '▶';
       playBtn.removeClass('playing');
     });
 
     audio.addEventListener('ended', () => {
-      playBtn.innerHTML = '▶';
+      playBtn.textContent = '▶';
       playBtn.removeClass('playing');
       progressFill.style.width = '0%';
       progressHandle.style.left = '0%';

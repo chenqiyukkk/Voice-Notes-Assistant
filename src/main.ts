@@ -205,7 +205,6 @@ export default class LectureRecorderPlugin extends Plugin {
     // 确保录音存储目录存在
     await this.audioFileManager.ensureStorageDir();
 
-    console.log('Lecture Recorder plugin loaded');
   }
 
   async onunload() {
@@ -214,7 +213,6 @@ export default class LectureRecorderPlugin extends Plugin {
       await this.stopRecordingAndFinalize({ triggerAutoTranscribe: false });
     }
     this.statusBar.destroy();
-    console.log('Lecture Recorder plugin unloaded');
   }
 
   async loadSettings() {

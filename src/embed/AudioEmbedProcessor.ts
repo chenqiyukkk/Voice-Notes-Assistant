@@ -202,7 +202,7 @@ export class AudioEmbedProcessor {
       cls: 'play-btn',
       attr: { 'aria-label': this.t('player.play.aria') },
     });
-    playBtn.innerHTML = '▶';
+    playBtn.textContent = '▶';
 
     // 进度条容器
     const progressContainer = controlsEl.createEl('div', { cls: 'progress-container' });
@@ -252,7 +252,7 @@ export class AudioEmbedProcessor {
     });
 
     audio.addEventListener('play', () => {
-      playBtn.innerHTML = '⏸';
+      playBtn.textContent = '⏸';
       playBtn.addClass('playing');
       // 设为活跃播放器
       AudioEmbedProcessor.activeAudio = audio;
@@ -260,12 +260,12 @@ export class AudioEmbedProcessor {
     });
 
     audio.addEventListener('pause', () => {
-      playBtn.innerHTML = '▶';
+      playBtn.textContent = '▶';
       playBtn.removeClass('playing');
     });
 
     audio.addEventListener('ended', () => {
-      playBtn.innerHTML = '▶';
+      playBtn.textContent = '▶';
       playBtn.removeClass('playing');
       progressFill.style.width = '0%';
       progressHandle.style.left = '0%';
