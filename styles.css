@@ -215,24 +215,32 @@
 
 /* ==================== 音频播放器 ==================== */
 .lecture-audio-player {
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 10px;
-  padding: 14px 18px;
+  border: 1px solid var(--background-modifier-border-hover, var(--background-modifier-border));
+  border-radius: 14px;
+  padding: 16px 18px;
   margin: 10px 0;
-  background: var(--background-secondary);
-  transition: box-shadow 0.2s ease;
+  background: linear-gradient(
+    165deg,
+    var(--background-secondary) 0%,
+    var(--background-primary-alt, var(--background-secondary)) 100%
+  );
+  box-shadow: 0 10px 24px -20px rgba(15, 23, 42, 0.75);
+  transition: border-color 0.2s ease, box-shadow 0.24s ease, transform 0.2s ease;
+  overflow: hidden;
 }
 
 .lecture-audio-player:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: var(--interactive-accent);
+  box-shadow: 0 16px 36px -24px rgba(15, 23, 42, 0.88);
+  transform: translateY(-1px);
 }
 
 /* 播放器头部 */
 .player-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .player-icon {
@@ -246,57 +254,78 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .player-duration-badge {
-  font-size: 0.8em;
+  font-size: 0.78em;
   font-family: var(--font-monospace);
   color: var(--text-muted);
-  background: var(--background-primary);
-  padding: 2px 8px;
-  border-radius: 10px;
+  background: var(--background-primary-alt, var(--background-primary));
+  padding: 3px 9px;
+  border-radius: 999px;
   border: 1px solid var(--background-modifier-border);
 }
 
-/* 转写折叠栏 */
-.transcript-collapse {
+/* 转写/纪要折叠栏 */
+.transcript-collapse,
+.summary-collapse {
   margin: 6px 0 10px;
   border: 1px solid var(--background-modifier-border);
-  border-radius: 8px;
-  background: var(--background-primary);
+  border-radius: 10px;
+  background: var(--background-primary-alt, var(--background-primary));
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.transcript-summary {
+.transcript-collapse[open],
+.summary-collapse[open] {
+  border-color: var(--interactive-accent);
+}
+
+.transcript-summary,
+.summary-summary {
   cursor: pointer;
   list-style: none;
-  padding: 8px 10px;
+  padding: 9px 11px;
   color: var(--text-muted);
-  font-size: 0.86em;
+  font-size: 0.84em;
   user-select: none;
+  transition: color 0.15s ease;
 }
 
-.transcript-summary::-webkit-details-marker {
+.transcript-summary:hover,
+.summary-summary:hover {
+  color: var(--text-normal);
+}
+
+.transcript-summary::-webkit-details-marker,
+.summary-summary::-webkit-details-marker {
   display: none;
 }
 
-.transcript-summary::before {
+.transcript-summary::before,
+.summary-summary::before {
   content: '▸ ';
   color: var(--interactive-accent);
+  font-weight: 700;
 }
 
-.transcript-collapse[open] .transcript-summary::before {
+.transcript-collapse[open] .transcript-summary::before,
+.summary-collapse[open] .summary-summary::before {
   content: '▾ ';
 }
 
-.transcript-content {
+.transcript-content,
+.summary-content {
   max-height: 220px;
   overflow: auto;
   border-top: 1px solid var(--background-modifier-border);
-  padding: 10px;
+  padding: 10px 12px;
   white-space: pre-wrap;
-  line-height: 1.6;
+  line-height: 1.65;
   font-size: 0.88em;
   color: var(--text-normal);
+  background: var(--background-primary);
 }
 
 /* 波形预览 */
@@ -304,11 +333,16 @@
   position: relative;
   margin: 8px 0 10px;
   border: 1px solid var(--background-modifier-border);
-  border-radius: 8px;
-  background: var(--background-primary);
+  border-radius: 10px;
+  background: var(--background-primary-alt, var(--background-primary));
   padding: 6px 8px;
   height: 70px;
   box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.waveform-container:hover {
+  border-color: var(--interactive-accent-hover, var(--interactive-accent));
 }
 
 .waveform-container.is-loading .waveform-canvas {
@@ -338,27 +372,30 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 2px 0;
 }
 
 .play-btn {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
   border-radius: 50%;
   border: 2px solid var(--interactive-accent);
-  background: transparent;
+  background: var(--background-primary);
   color: var(--interactive-accent);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 }
 
 .play-btn:hover {
   background: var(--interactive-accent);
   color: var(--text-on-accent);
+  transform: scale(1.04);
+  box-shadow: 0 6px 14px -10px var(--interactive-accent);
 }
 
 .play-btn.playing {
@@ -372,28 +409,30 @@
 }
 
 .progress-bar {
-  height: 6px;
+  height: 7px;
   background: var(--background-modifier-border);
-  border-radius: 3px;
+  border-radius: 999px;
   cursor: pointer;
   position: relative;
+  transition: height 0.15s ease;
 }
 
 .progress-bar:hover {
-  height: 8px;
+  height: 9px;
 }
 
 .progress-fill {
   height: 100%;
-  background: var(--interactive-accent);
-  border-radius: 3px;
+  background: linear-gradient(90deg, var(--interactive-accent), var(--interactive-accent-hover, var(--interactive-accent)));
+  border-radius: 999px;
   width: 0%;
   pointer-events: none;
+  transition: width 0.08s linear;
 }
 
 .progress-handle {
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   background: var(--interactive-accent);
   position: absolute;
@@ -401,12 +440,14 @@
   left: 0%;
   transform: translate(-50%, -50%);
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease;
   pointer-events: none;
+  box-shadow: 0 2px 8px -4px var(--interactive-accent);
 }
 
 .progress-bar:hover .progress-handle {
   opacity: 1;
+  transform: translate(-50%, -50%) scale(1.02);
 }
 
 /* 时间显示 */
@@ -422,12 +463,13 @@
 /* 倍速选择 */
 .speed-select {
   font-size: 0.78em;
-  padding: 2px 4px;
-  border-radius: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
   border: 1px solid var(--background-modifier-border);
-  background: var(--interactive-normal);
+  background: var(--background-primary);
   color: var(--text-muted);
   cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .speed-select:hover {
@@ -438,27 +480,33 @@
 /* 操作按钮 */
 .player-actions {
   display: flex;
-  gap: 8px;
+  gap: 9px;
   margin-top: 10px;
-  padding-top: 10px;
+  padding-top: 11px;
   border-top: 1px solid var(--background-modifier-border);
+  flex-wrap: wrap;
 }
 
 .action-btn {
-  padding: 4px 14px;
+  padding: 5px 14px;
   font-size: 0.82em;
-  border-radius: 5px;
+  border-radius: 8px;
   border: 1px solid var(--background-modifier-border);
-  background: var(--interactive-normal);
+  background: var(--background-primary);
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
 
 .action-btn:hover {
   background: var(--interactive-hover);
   color: var(--text-normal);
   border-color: var(--interactive-accent);
+  transform: translateY(-1px);
+}
+
+.action-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .action-btn:disabled {
@@ -496,12 +544,17 @@
 /* ==================== 录音中内联块 ==================== */
 .lecture-recording-widget,
 .lecture-recording-reading-placeholder {
-  border: 1px solid var(--text-error);
+  border: 1px solid var(--background-modifier-border-hover, var(--background-modifier-border));
   border-left: 4px solid var(--text-error);
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 12px;
+  padding: 12px 15px;
   margin: 10px 0;
-  background: var(--background-secondary-alt);
+  background: linear-gradient(
+    160deg,
+    var(--background-secondary-alt) 0%,
+    var(--background-secondary) 100%
+  );
+  box-shadow: 0 8px 18px -16px rgba(220, 53, 69, 0.55);
 }
 
 .recording-header {
@@ -539,6 +592,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .recording-timer {
@@ -556,19 +610,20 @@
 }
 
 .recording-action-btn {
-  padding: 4px 12px;
-  border-radius: 6px;
+  padding: 5px 12px;
+  border-radius: 8px;
   border: 1px solid var(--background-modifier-border);
-  background: var(--interactive-normal);
+  background: var(--background-primary);
   color: var(--text-normal);
   font-size: 0.82em;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
 
 .recording-action-btn:hover:not(:disabled) {
   background: var(--interactive-hover);
   border-color: var(--interactive-accent);
+  transform: translateY(-1px);
 }
 
 .recording-action-btn.stop {

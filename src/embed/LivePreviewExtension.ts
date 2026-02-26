@@ -7,6 +7,7 @@ import { AudioEmbedProcessor } from './AudioEmbedProcessor';
 import { RecorderState } from '../recorder/AudioRecorder';
 import { formatDuration, formatTime } from '../utils/timeUtils';
 import { attachWaveform } from '../utils/waveform';
+import { i18n } from '../i18n';
 
 interface AudioEmbedParams {
   file: string;
@@ -14,6 +15,12 @@ interface AudioEmbedParams {
   duration: string;
   status?: string;
   id?: string;
+}
+
+interface ResultPanel {
+  detailsEl: HTMLDetailsElement;
+  summaryEl: HTMLElement;
+  contentEl: HTMLElement;
 }
 
 /**
@@ -50,7 +57,7 @@ class AudioPlayerWidget extends WidgetType {
       const audioFile = this.plugin.app.vault.getAbstractFileByPath(this.params.file);
       if (!audioFile || !(audioFile instanceof TFile)) {
         container.className = 'player-error';
-        container.textContent = `音频文件未找到: ${this.params.file}`;
+        container.textContent = this.t('player.error.fileNotFound', { file: this.params.file });
         return container;
       }
 
@@ -86,7 +93,7 @@ class AudioPlayerWidget extends WidgetType {
     } catch (err) {
       console.error('Lecture Recorder: AudioPlayerWidget.toDOM 失败', err);
       container.className = 'player-error';
-      container.textContent = '播放器加载失败';
+      container.textContent = this.t('player.error.loadFailed');
     }
 
     return container;
@@ -128,10 +135,12 @@ class AudioPlayerWidget extends WidgetType {
     // 标题栏
     const headerEl = container.createDiv({ cls: 'player-header' });
     headerEl.createSpan({ cls: 'player-icon', text: '🎙' });
-    headerEl.createSpan({ cls: 'player-title', text: params.title || '未命名录音' });
+    headerEl.createSpan({ cls: 'player-title', text: params.title || this.t('player.title.fallback') });
     headerEl.createSpan({ cls: 'player-duration-badge', text: params.duration || '--:--:--' });
     const transcriptPanel = this.createTranscriptPanel(container);
+    const summaryPanel = this.createSummaryPanel(container);
     void this.refreshTranscriptPanel(params.file, transcriptPanel);
+    void this.refreshSummaryPanel(params.file, summaryPanel);
     if (this.plugin.settings.waveformEnabled) {
       this.cleanupFns.push(attachWaveform({
         hostEl: container,
@@ -146,7 +155,10 @@ class AudioPlayerWidget extends WidgetType {
     const controlsEl = container.createDiv({ cls: 'player-controls' });
 
     // 播放按钮
-    const playBtn = controlsEl.createEl('button', { cls: 'play-btn', attr: { 'aria-label': '播放' } });
+    const playBtn = controlsEl.createEl('button', {
+      cls: 'play-btn',
+      attr: { 'aria-label': this.t('player.play.aria') },
+    });
     playBtn.innerHTML = '▶';
 
     // 进度条
@@ -167,8 +179,14 @@ class AudioPlayerWidget extends WidgetType {
 
     // 操作按钮栏
     const actionsEl = container.createDiv({ cls: 'player-actions' });
-    const transcribeBtn = actionsEl.createEl('button', { cls: 'action-btn', text: '📝 转写录音' });
-    const summarizeBtn = actionsEl.createEl('button', { cls: 'action-btn', text: '✨ 生成纪要' });
+    const transcribeBtn = actionsEl.createEl('button', {
+      cls: 'action-btn',
+      text: this.t('player.action.transcribe'),
+    });
+    const summarizeBtn = actionsEl.createEl('button', {
+      cls: 'action-btn',
+      text: this.t('player.action.summarize'),
+    });
 
     // ==================== 事件绑定 ====================
 
@@ -280,11 +298,19 @@ class AudioPlayerWidget extends WidgetType {
     summarizeBtn.addEventListener('click', async () => {
       summarizeBtn.disabled = true;
       const preferredNotePath = this.plugin.app.workspace.getActiveFile()?.path;
+      let generatedSummary: string | null = null;
       try {
-        await this.plugin.summarizeAudioFile(params.file, undefined, preferredNotePath);
+        generatedSummary = await this.plugin.summarizeAudioFile(params.file, undefined, preferredNotePath);
+        if (!this.destroyed && generatedSummary?.trim()) {
+          summaryPanel.detailsEl.open = true;
+          this.applySummaryToPanel(generatedSummary, summaryPanel);
+        }
       } finally {
         if (!this.destroyed) {
           summarizeBtn.disabled = false;
+          if (!generatedSummary?.trim()) {
+            void this.refreshSummaryPanel(params.file, summaryPanel);
+          }
         }
       }
     });
@@ -360,19 +386,29 @@ class AudioPlayerWidget extends WidgetType {
     return null;
   }
 
-  private createTranscriptPanel(container: HTMLElement): {
-    detailsEl: HTMLDetailsElement;
-    summaryEl: HTMLElement;
-    contentEl: HTMLElement;
-  } {
+  private createTranscriptPanel(container: HTMLElement): ResultPanel {
     const detailsEl = container.createEl('details', { cls: 'transcript-collapse' }) as HTMLDetailsElement;
     const summaryEl = detailsEl.createEl('summary', {
       cls: 'transcript-summary',
-      text: '🧾 转写结果（未生成）',
+      text: this.t('player.transcript.emptyTitle'),
     });
     const contentEl = detailsEl.createEl('div', {
       cls: 'transcript-content',
-      text: '暂无转写结果，点击"转写录音"后可在此展开查看。',
+      text: this.t('player.transcript.emptyContent'),
+    });
+
+    return { detailsEl, summaryEl, contentEl };
+  }
+
+  private createSummaryPanel(container: HTMLElement): ResultPanel {
+    const detailsEl = container.createEl('details', { cls: 'summary-collapse' }) as HTMLDetailsElement;
+    const summaryEl = detailsEl.createEl('summary', {
+      cls: 'summary-summary',
+      text: this.t('player.summary.emptyTitle'),
+    });
+    const contentEl = detailsEl.createEl('div', {
+      cls: 'summary-content',
+      text: this.t('player.summary.emptyContent'),
     });
 
     return { detailsEl, summaryEl, contentEl };
@@ -380,11 +416,7 @@ class AudioPlayerWidget extends WidgetType {
 
   private async refreshTranscriptPanel(
     filePath: string,
-    panel: {
-      detailsEl: HTMLDetailsElement;
-      summaryEl: HTMLElement;
-      contentEl: HTMLElement;
-    },
+    panel: ResultPanel,
   ): Promise<void> {
     const cached = await this.plugin.getCachedTranscription(filePath);
     if (this.destroyed || !panel.contentEl.isConnected) {
@@ -394,24 +426,56 @@ class AudioPlayerWidget extends WidgetType {
     this.applyTranscriptionToPanel(cached, panel);
   }
 
+  private async refreshSummaryPanel(
+    filePath: string,
+    panel: ResultPanel,
+  ): Promise<void> {
+    const cached = await this.plugin.getCachedSummary(filePath);
+    if (this.destroyed || !panel.contentEl.isConnected) {
+      return;
+    }
+
+    this.applySummaryToPanel(cached, panel);
+  }
+
   private applyTranscriptionToPanel(
     transcription: TranscriptionResult | null,
-    panel: {
-      detailsEl: HTMLDetailsElement;
-      summaryEl: HTMLElement;
-      contentEl: HTMLElement;
-    },
+    panel: ResultPanel,
   ): void {
     const fullText = transcription?.fullText?.trim() || '';
     if (!fullText) {
-      panel.summaryEl.textContent = '🧾 转写结果（未生成）';
-      panel.contentEl.textContent = '暂无转写结果，点击"转写录音"后可在此展开查看。';
+      panel.summaryEl.textContent = this.t('player.transcript.emptyTitle');
+      panel.contentEl.textContent = this.t('player.transcript.emptyContent');
       return;
     }
 
     const segmentCount = transcription?.segments?.length || 1;
-    panel.summaryEl.textContent = `🧾 转写结果（${segmentCount} 段，点击展开）`;
+    panel.summaryEl.textContent = this.t('player.transcript.readyTitle', { count: segmentCount });
     panel.contentEl.textContent = fullText;
+  }
+
+  private applySummaryToPanel(
+    summaryMarkdown: string | null,
+    panel: ResultPanel,
+  ): void {
+    const normalized = summaryMarkdown?.trim() || '';
+    if (!normalized) {
+      panel.summaryEl.textContent = this.t('player.summary.emptyTitle');
+      panel.contentEl.textContent = this.t('player.summary.emptyContent');
+      return;
+    }
+
+    panel.summaryEl.textContent = this.t('player.summary.readyTitle', {
+      chars: normalized.length,
+    });
+    panel.contentEl.textContent = normalized;
+  }
+
+  private t(
+    key: Parameters<typeof i18n>[1],
+    vars?: Record<string, string | number>,
+  ): string {
+    return i18n(this.plugin.settings.uiLanguage, key, vars);
   }
 }
 
@@ -442,8 +506,14 @@ class RecordingWidget extends WidgetType {
 
     const headerEl = container.createDiv({ cls: 'recording-header' });
     headerEl.createSpan({ cls: 'recording-dot' });
-    headerEl.createSpan({ cls: 'recording-title', text: this.params.title || '未命名课程' });
-    const stateEl = headerEl.createSpan({ cls: 'recording-state-badge', text: '录音中' });
+    headerEl.createSpan({
+      cls: 'recording-title',
+      text: this.params.title || this.t('recording.title.fallback'),
+    });
+    const stateEl = headerEl.createSpan({
+      cls: 'recording-state-badge',
+      text: this.t('recording.state.recording'),
+    });
 
     const bodyEl = container.createDiv({ cls: 'recording-body' });
     const timerEl = bodyEl.createSpan({
@@ -454,30 +524,30 @@ class RecordingWidget extends WidgetType {
     const controlsEl = bodyEl.createDiv({ cls: 'recording-controls' });
     const pauseBtn = controlsEl.createEl('button', {
       cls: 'recording-action-btn',
-      text: '暂停',
-      attr: { 'aria-label': '暂停或继续录音' },
+      text: this.t('recording.action.pause'),
+      attr: { 'aria-label': this.t('recording.action.pause.aria') },
     });
     const stopBtn = controlsEl.createEl('button', {
       cls: 'recording-action-btn stop',
-      text: '停止',
-      attr: { 'aria-label': '停止录音' },
+      text: this.t('recording.action.stop'),
+      attr: { 'aria-label': this.t('recording.action.stop.aria') },
     });
 
     const syncState = () => {
       const state = this.plugin.recorder.getState();
 
       if (state === RecorderState.RECORDING) {
-        stateEl.textContent = '录音中';
-        pauseBtn.textContent = '暂停';
+        stateEl.textContent = this.t('recording.state.recording');
+        pauseBtn.textContent = this.t('recording.action.pause');
         pauseBtn.disabled = false;
         stopBtn.disabled = false;
       } else if (state === RecorderState.PAUSED) {
-        stateEl.textContent = '已暂停';
-        pauseBtn.textContent = '继续';
+        stateEl.textContent = this.t('recording.state.paused');
+        pauseBtn.textContent = this.t('recording.action.resume');
         pauseBtn.disabled = false;
         stopBtn.disabled = false;
       } else {
-        stateEl.textContent = '处理中';
+        stateEl.textContent = this.t('recording.state.processing');
         pauseBtn.disabled = true;
         stopBtn.disabled = true;
       }
@@ -517,6 +587,13 @@ class RecordingWidget extends WidgetType {
       window.clearInterval(this.timerInterval);
       this.timerInterval = null;
     }
+  }
+
+  private t(
+    key: Parameters<typeof i18n>[1],
+    vars?: Record<string, string | number>,
+  ): string {
+    return i18n(this.plugin.settings.uiLanguage, key, vars);
   }
 }
 

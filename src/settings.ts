@@ -1,6 +1,183 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type LectureRecorderPlugin from './main';
 
+type SettingsLocale = 'zh' | 'en';
+
+const SETTINGS_TEXT = {
+  zh: {
+    title: '语音纪要助手',
+    intro1: '适用于会议纪要、课堂总结、访谈整理等场景。',
+    intro2: '快速上手：先配置“转写服务”和“AI 纪要服务”→ 开始录音 → 点击“转写录音/生成纪要”。',
+    intro3: '如果你是第一次使用，推荐先使用默认设置，只填写 API Key。',
+    languageName: '界面语言',
+    languageDesc: '点击按钮切换插件语言，支持中文 / English。',
+    languageZh: '中文',
+    languageEn: 'English',
+    sectionRecording: '1) 录音与文件保存',
+    sectionTranscription: '2) 语音转写服务',
+    sectionSummary: '3) AI 纪要生成',
+    sectionAutomation: '4) 自动流程（推荐）',
+    sectionTemplate: '5) 纪要模板（可选）',
+    sectionAdvanced: '6) 高级优化（按需）',
+    recordingStorageName: '录音文件保存位置',
+    recordingStorageDesc: '录音文件会保存到你的 Vault 目录中（建议保持默认）',
+    audioFormatName: '音频格式',
+    audioFormatDesc: 'WAV 兼容性更好（推荐新手），WebM 体积更小',
+    audioFormatWebm: 'WebM (Opus)',
+    audioFormatWav: 'WAV',
+    audioQualityName: '音频质量',
+    audioQualityDesc: '更高质量 = 更清晰，但文件更大',
+    audioQualityLow: '低 (64kbps)',
+    audioQualityStandard: '标准 (128kbps)',
+    audioQualityHigh: '高 (256kbps)',
+    transcriptionProviderName: '转写服务',
+    transcriptionProviderDesc: '将音频转成文字。会议和课堂都建议先选一个服务并完成配置',
+    providerWhisper: 'OpenAI Whisper（稳定通用）',
+    providerXfyun: '科大讯飞（中文场景表现好）',
+    providerLocalWhisper: '本地 Whisper（离线与隐私优先）',
+    transcriptionLanguageName: '转写语言',
+    transcriptionLanguageDesc: '请选择会议/课堂中的主要语言，auto 为自动检测',
+    languageOptionZh: '中文',
+    languageOptionEn: '英文',
+    languageOptionAuto: '自动检测',
+    summaryProviderName: '纪要服务',
+    summaryProviderDesc: '将转写内容整理为结构化纪要（核心要点、术语、复习建议等）',
+    summaryProviderOpenAI: 'OpenAI 兼容 (OpenAI/DeepSeek/硅基流动等)',
+    summaryProviderClaude: 'Claude (Anthropic)',
+    autoTranscribeName: '自动转写',
+    autoTranscribeDesc: '录音结束后自动开始语音转写',
+    autoSummarizeName: '自动生成纪要',
+    autoSummarizeDesc: '转写完成后自动生成会议/课堂纪要',
+    customTemplateName: '自定义提示词模板',
+    customTemplateDesc: '可用占位符：{{courseName}} / {{date}} / {{duration}}。留空使用内置模板',
+    customTemplatePlaceholder: '留空使用默认模板...',
+    hierarchicalName: '长文本分段总结',
+    hierarchicalDesc: '长会议/长课堂推荐开启：先分段总结，再合并最终纪要',
+    chunkLimitName: '分段阈值（字符）',
+    chunkLimitDesc: '超过该长度触发分段总结。内容越长可适当调低',
+    waveformEnabledName: '启用音频波形',
+    waveformEnabledDesc: '显示波形，便于快速定位关键片段（会议讨论点/课堂重点）',
+    waveformMaxName: '波形最大文件大小（MB）',
+    waveformMaxDesc: '超过该大小不再渲染波形，避免卡顿',
+    whisperHeader: 'OpenAI Whisper 配置（语音转写）',
+    xfyunHeader: '科大讯飞配置（语音转写）',
+    localWhisperHeader: '本地 Whisper 配置（离线转写）',
+    openAICompatHeader: 'OpenAI 兼容 API 配置（AI 纪要）',
+    claudeHeader: 'Claude API 配置（AI 纪要）',
+    apiKeyName: 'API Key',
+    apiBaseName: 'API Base URL',
+    modelName: '模型名称',
+    whisperApiKeyDesc: '用于调用转写接口（仅 API 计费，不是 ChatGPT Plus）',
+    whisperApiBaseDesc: '默认 OpenAI，或填写兼容地址（代理/第三方平台）',
+    whisperModelDesc: '一般保持 whisper-1 即可',
+    xfyunAppIdName: 'App ID',
+    xfyunAppIdDesc: '在讯飞开放平台创建应用后获取',
+    xfyunSecretName: 'Secret Key',
+    xfyunDesc1: '讯飞开放平台: https://www.xfyun.cn/',
+    xfyunDesc2: '新用户可获得 50 小时免费转写额度',
+    localWhisperCppName: 'whisper.cpp 路径',
+    localWhisperCppDesc: 'whisper.cpp 可执行文件完整路径（如 whisper-cli.exe）',
+    localWhisperModelPathName: '模型文件路径',
+    localWhisperModelPathDesc: 'GGML 模型路径（推荐 base/small，精度与速度更平衡）',
+    localWhisperThreadsName: 'CPU 线程数',
+    localWhisperThreadsDesc: '更多线程 = 更快转写，但也更占系统资源',
+    localWhisperDesc1: 'whisper.cpp: https://github.com/ggerganov/whisper.cpp/releases',
+    localWhisperDesc2: '模型下载: https://huggingface.co/ggerganov/whisper.cpp',
+    localWhisperDesc3: '推荐: base (~142MB) 或 small (~466MB)',
+    openAICompatApiKeyDesc: '用于纪要生成（支持 OpenAI/DeepSeek/硅基流动等）',
+    openAICompatApiBaseDesc: 'OpenAI / DeepSeek / 硅基流动等的 API 地址',
+    openAICompatModelDesc: '示例：gpt-4o / deepseek-chat / glm-4',
+    claudeApiKeyDesc: 'Anthropic API Key（API 独立计费，非 Claude Pro）',
+  },
+  en: {
+    title: 'Voice Notes Assistant',
+    intro1: 'Designed for meeting notes, class summaries, and interview organization.',
+    intro2: 'Quick start: configure "Transcription Service" and "AI Summary Service" -> start recording -> click "Transcribe/Summarize".',
+    intro3: 'For first-time use, keep defaults and only fill in API keys.',
+    languageName: 'UI Language',
+    languageDesc: 'Switch plugin language with buttons. Supports Chinese / English.',
+    languageZh: '中文',
+    languageEn: 'English',
+    sectionRecording: '1) Recording & Storage',
+    sectionTranscription: '2) Transcription Service',
+    sectionSummary: '3) AI Summarization',
+    sectionAutomation: '4) Automation (Recommended)',
+    sectionTemplate: '5) Summary Template (Optional)',
+    sectionAdvanced: '6) Advanced Optimization',
+    recordingStorageName: 'Recording Storage Path',
+    recordingStorageDesc: 'Recordings are saved inside your vault (default recommended).',
+    audioFormatName: 'Audio Format',
+    audioFormatDesc: 'WAV has better compatibility; WebM produces smaller files.',
+    audioFormatWebm: 'WebM (Opus)',
+    audioFormatWav: 'WAV',
+    audioQualityName: 'Audio Quality',
+    audioQualityDesc: 'Higher quality means clearer sound but larger files.',
+    audioQualityLow: 'Low (64kbps)',
+    audioQualityStandard: 'Standard (128kbps)',
+    audioQualityHigh: 'High (256kbps)',
+    transcriptionProviderName: 'Transcription Provider',
+    transcriptionProviderDesc: 'Convert audio to text. Choose one provider and complete configuration first.',
+    providerWhisper: 'OpenAI Whisper (stable & general)',
+    providerXfyun: 'iFLYTEK (strong in Chinese)',
+    providerLocalWhisper: 'Local Whisper (offline & privacy-first)',
+    transcriptionLanguageName: 'Transcription Language',
+    transcriptionLanguageDesc: 'Select the primary spoken language. "auto" detects automatically.',
+    languageOptionZh: 'Chinese',
+    languageOptionEn: 'English',
+    languageOptionAuto: 'Auto Detect',
+    summaryProviderName: 'Summary Provider',
+    summaryProviderDesc: 'Organize transcript into structured notes (key points, terms, review suggestions).',
+    summaryProviderOpenAI: 'OpenAI-compatible (OpenAI/DeepSeek/SiliconFlow, etc.)',
+    summaryProviderClaude: 'Claude (Anthropic)',
+    autoTranscribeName: 'Auto Transcribe',
+    autoTranscribeDesc: 'Automatically transcribe after recording ends.',
+    autoSummarizeName: 'Auto Summarize',
+    autoSummarizeDesc: 'Automatically generate summary after transcription completes.',
+    customTemplateName: 'Custom Prompt Template',
+    customTemplateDesc: 'Available placeholders: {{courseName}} / {{date}} / {{duration}}. Leave empty for default template.',
+    customTemplatePlaceholder: 'Leave empty to use default template...',
+    hierarchicalName: 'Hierarchical Summarization',
+    hierarchicalDesc: 'Recommended for long sessions: summarize chunks first, then merge.',
+    chunkLimitName: 'Chunk Threshold (chars)',
+    chunkLimitDesc: 'Chunk summarization starts when transcript exceeds this length.',
+    waveformEnabledName: 'Enable Waveform',
+    waveformEnabledDesc: 'Display waveform to quickly locate key moments.',
+    waveformMaxName: 'Waveform Max File Size (MB)',
+    waveformMaxDesc: 'Skip waveform rendering above this size to avoid lag.',
+    whisperHeader: 'OpenAI Whisper Settings (Transcription)',
+    xfyunHeader: 'iFLYTEK Settings (Transcription)',
+    localWhisperHeader: 'Local Whisper Settings (Offline)',
+    openAICompatHeader: 'OpenAI-Compatible API Settings (Summary)',
+    claudeHeader: 'Claude API Settings (Summary)',
+    apiKeyName: 'API Key',
+    apiBaseName: 'API Base URL',
+    modelName: 'Model Name',
+    whisperApiKeyDesc: 'Used for transcription API calls (API billing only, not ChatGPT Plus).',
+    whisperApiBaseDesc: 'Default OpenAI endpoint, or use any compatible endpoint.',
+    whisperModelDesc: 'Usually keep whisper-1.',
+    xfyunAppIdName: 'App ID',
+    xfyunAppIdDesc: 'Get it after creating an app on iFLYTEK Open Platform.',
+    xfyunSecretName: 'Secret Key',
+    xfyunDesc1: 'iFLYTEK Open Platform: https://www.xfyun.cn/',
+    xfyunDesc2: 'New users may get 50 hours free quota.',
+    localWhisperCppName: 'whisper.cpp Path',
+    localWhisperCppDesc: 'Full path to whisper.cpp executable (e.g. whisper-cli.exe).',
+    localWhisperModelPathName: 'Model File Path',
+    localWhisperModelPathDesc: 'GGML model path (base/small recommended for balance).',
+    localWhisperThreadsName: 'CPU Threads',
+    localWhisperThreadsDesc: 'More threads = faster transcription, but higher resource usage.',
+    localWhisperDesc1: 'whisper.cpp: https://github.com/ggerganov/whisper.cpp/releases',
+    localWhisperDesc2: 'Model download: https://huggingface.co/ggerganov/whisper.cpp',
+    localWhisperDesc3: 'Recommended: base (~142MB) or small (~466MB)',
+    openAICompatApiKeyDesc: 'Used for summary generation (OpenAI/DeepSeek/SiliconFlow, etc.)',
+    openAICompatApiBaseDesc: 'API endpoint for OpenAI / DeepSeek / SiliconFlow, etc.',
+    openAICompatModelDesc: 'Example: gpt-4o / deepseek-chat / glm-4',
+    claudeApiKeyDesc: 'Anthropic API key (separate API billing, not Claude Pro).',
+  },
+} as const;
+
+type SettingsTextKey = keyof typeof SETTINGS_TEXT.zh;
+
 export interface LectureRecorderSettings {
   // 录音
   recordingStoragePath: string;
@@ -107,18 +284,24 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h1', { text: '语音纪要助手' });
+    containerEl.createEl('h1', { text: this.tr('title') });
     const intro = containerEl.createEl('div', { cls: 'setting-item-description' });
-    intro.createEl('p', { text: '适用于会议纪要、课堂总结、访谈整理等场景。' });
-    intro.createEl('p', { text: '快速上手：先配置“转写服务”和“AI 纪要服务”→ 开始录音 → 点击“转写录音/生成纪要”。' });
-    intro.createEl('p', { text: '如果你是第一次使用，推荐先使用默认设置，只填写 API Key。' });
+    intro.createEl('p', { text: this.tr('intro1') });
+    intro.createEl('p', { text: this.tr('intro2') });
+    intro.createEl('p', { text: this.tr('intro3') });
+
+    const languageSetting = new Setting(containerEl)
+      .setName(this.tr('languageName'))
+      .setDesc(this.tr('languageDesc'));
+    this.addLanguageButton(languageSetting, 'zh', this.tr('languageZh'));
+    this.addLanguageButton(languageSetting, 'en', this.tr('languageEn'));
 
     // ==================== 录音设置 ====================
-    containerEl.createEl('h2', { text: '1) 录音与文件保存' });
+    containerEl.createEl('h2', { text: this.tr('sectionRecording') });
 
     new Setting(containerEl)
-      .setName('录音文件保存位置')
-      .setDesc('录音文件会保存到你的 Vault 目录中（建议保持默认）')
+      .setName(this.tr('recordingStorageName'))
+      .setDesc(this.tr('recordingStorageDesc'))
       .addText(text => text
         .setPlaceholder('recordings')
         .setValue(this.plugin.settings.recordingStoragePath)
@@ -128,11 +311,11 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('音频格式')
-      .setDesc('WAV 兼容性更好（推荐新手），WebM 体积更小')
+      .setName(this.tr('audioFormatName'))
+      .setDesc(this.tr('audioFormatDesc'))
       .addDropdown(dropdown => dropdown
-        .addOption('webm', 'WebM (Opus)')
-        .addOption('wav', 'WAV')
+        .addOption('webm', this.tr('audioFormatWebm'))
+        .addOption('wav', this.tr('audioFormatWav'))
         .setValue(this.plugin.settings.audioFormat)
         .onChange(async (value: string) => {
           this.plugin.settings.audioFormat = value as 'webm' | 'wav';
@@ -140,12 +323,12 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('音频质量')
-      .setDesc('更高质量 = 更清晰，但文件更大')
+      .setName(this.tr('audioQualityName'))
+      .setDesc(this.tr('audioQualityDesc'))
       .addDropdown(dropdown => dropdown
-        .addOption('low', '低 (64kbps)')
-        .addOption('standard', '标准 (128kbps)')
-        .addOption('high', '高 (256kbps)')
+        .addOption('low', this.tr('audioQualityLow'))
+        .addOption('standard', this.tr('audioQualityStandard'))
+        .addOption('high', this.tr('audioQualityHigh'))
         .setValue(this.plugin.settings.audioQuality)
         .onChange(async (value: string) => {
           this.plugin.settings.audioQuality = value as 'low' | 'standard' | 'high';
@@ -153,15 +336,15 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     // ==================== 语音转写设置 ====================
-    containerEl.createEl('h2', { text: '2) 语音转写服务' });
+    containerEl.createEl('h2', { text: this.tr('sectionTranscription') });
 
     new Setting(containerEl)
-      .setName('转写服务')
-      .setDesc('将音频转成文字。会议和课堂都建议先选一个服务并完成配置')
+      .setName(this.tr('transcriptionProviderName'))
+      .setDesc(this.tr('transcriptionProviderDesc'))
       .addDropdown(dropdown => dropdown
-        .addOption('whisper', 'OpenAI Whisper（稳定通用）')
-        .addOption('xfyun', '科大讯飞（中文场景表现好）')
-        .addOption('local-whisper', '本地 Whisper（离线与隐私优先）')
+        .addOption('whisper', this.tr('providerWhisper'))
+        .addOption('xfyun', this.tr('providerXfyun'))
+        .addOption('local-whisper', this.tr('providerLocalWhisper'))
         .setValue(this.plugin.settings.transcriptionProvider)
         .onChange(async (value: string) => {
           this.plugin.settings.transcriptionProvider = value as 'whisper' | 'xfyun' | 'local-whisper';
@@ -170,12 +353,12 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('转写语言')
-      .setDesc('请选择会议/课堂中的主要语言，auto 为自动检测')
+      .setName(this.tr('transcriptionLanguageName'))
+      .setDesc(this.tr('transcriptionLanguageDesc'))
       .addDropdown(dropdown => dropdown
-        .addOption('zh', '中文')
-        .addOption('en', '英文')
-        .addOption('auto', '自动检测')
+        .addOption('zh', this.tr('languageOptionZh'))
+        .addOption('en', this.tr('languageOptionEn'))
+        .addOption('auto', this.tr('languageOptionAuto'))
         .setValue(this.plugin.settings.transcriptionLanguage)
         .onChange(async (value: string) => {
           this.plugin.settings.transcriptionLanguage = value;
@@ -193,14 +376,14 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
     }
 
     // ==================== AI 总结设置 ====================
-    containerEl.createEl('h2', { text: '3) AI 纪要生成' });
+    containerEl.createEl('h2', { text: this.tr('sectionSummary') });
 
     new Setting(containerEl)
-      .setName('纪要服务')
-      .setDesc('将转写内容整理为结构化纪要（核心要点、术语、复习建议等）')
+      .setName(this.tr('summaryProviderName'))
+      .setDesc(this.tr('summaryProviderDesc'))
       .addDropdown(dropdown => dropdown
-        .addOption('openai-compat', 'OpenAI 兼容 (OpenAI/DeepSeek/硅基流动等)')
-        .addOption('claude', 'Claude (Anthropic)')
+        .addOption('openai-compat', this.tr('summaryProviderOpenAI'))
+        .addOption('claude', this.tr('summaryProviderClaude'))
         .setValue(this.plugin.settings.summaryProvider)
         .onChange(async (value: string) => {
           this.plugin.settings.summaryProvider = value as 'openai-compat' | 'claude';
@@ -215,11 +398,11 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
     }
 
     // ==================== 自动化设置 ====================
-    containerEl.createEl('h2', { text: '4) 自动流程（推荐）' });
+    containerEl.createEl('h2', { text: this.tr('sectionAutomation') });
 
     new Setting(containerEl)
-      .setName('自动转写')
-      .setDesc('录音结束后自动开始语音转写')
+      .setName(this.tr('autoTranscribeName'))
+      .setDesc(this.tr('autoTranscribeDesc'))
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.autoTranscribe)
         .onChange(async (value) => {
@@ -228,8 +411,8 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('自动生成纪要')
-      .setDesc('转写完成后自动生成会议/课堂纪要')
+      .setName(this.tr('autoSummarizeName'))
+      .setDesc(this.tr('autoSummarizeDesc'))
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.autoSummarize)
         .onChange(async (value) => {
@@ -238,14 +421,14 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     // ==================== 自定义模板 ====================
-    containerEl.createEl('h2', { text: '5) 纪要模板（可选）' });
+    containerEl.createEl('h2', { text: this.tr('sectionTemplate') });
 
     new Setting(containerEl)
-      .setName('自定义提示词模板')
-      .setDesc('可用占位符：{{courseName}} / {{date}} / {{duration}}。留空使用内置模板')
+      .setName(this.tr('customTemplateName'))
+      .setDesc(this.tr('customTemplateDesc'))
       .addTextArea(text => {
         text
-          .setPlaceholder('留空使用默认模板...')
+          .setPlaceholder(this.tr('customTemplatePlaceholder'))
           .setValue(this.plugin.settings.summaryTemplate)
           .onChange(async (value) => {
             this.plugin.settings.summaryTemplate = value;
@@ -256,11 +439,11 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
       });
 
     // ==================== Phase 5 设置 ====================
-    containerEl.createEl('h2', { text: '6) 高级优化（按需）' });
+    containerEl.createEl('h2', { text: this.tr('sectionAdvanced') });
 
     new Setting(containerEl)
-      .setName('长文本分段总结')
-      .setDesc('长会议/长课堂推荐开启：先分段总结，再合并最终纪要')
+      .setName(this.tr('hierarchicalName'))
+      .setDesc(this.tr('hierarchicalDesc'))
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.summaryEnableHierarchical)
         .onChange(async (value) => {
@@ -269,8 +452,8 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('分段阈值（字符）')
-      .setDesc('超过该长度触发分段总结。内容越长可适当调低')
+      .setName(this.tr('chunkLimitName'))
+      .setDesc(this.tr('chunkLimitDesc'))
       .addSlider(slider => slider
         .setLimits(4000, 30000, 1000)
         .setValue(this.plugin.settings.summaryChunkCharLimit)
@@ -281,8 +464,8 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('启用音频波形')
-      .setDesc('显示波形，便于快速定位关键片段（会议讨论点/课堂重点）')
+      .setName(this.tr('waveformEnabledName'))
+      .setDesc(this.tr('waveformEnabledDesc'))
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.waveformEnabled)
         .onChange(async (value) => {
@@ -291,8 +474,8 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('波形最大文件大小（MB）')
-      .setDesc('超过该大小不再渲染波形，避免卡顿')
+      .setName(this.tr('waveformMaxName'))
+      .setDesc(this.tr('waveformMaxDesc'))
       .addSlider(slider => slider
         .setLimits(10, 200, 5)
         .setValue(this.plugin.settings.waveformMaxFileSizeMB)
@@ -301,26 +484,14 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
           this.plugin.settings.waveformMaxFileSizeMB = value;
           await this.plugin.saveSettings();
         }));
-
-    new Setting(containerEl)
-      .setName('界面语言')
-      .setDesc('设置插件界面显示语言（目前主要覆盖录音管理面板）')
-      .addDropdown(dropdown => dropdown
-        .addOption('zh', '中文')
-        .addOption('en', 'English')
-        .setValue(this.plugin.settings.uiLanguage)
-        .onChange(async (value: string) => {
-          this.plugin.settings.uiLanguage = value as 'zh' | 'en';
-          await this.plugin.saveSettings();
-        }));
   }
 
   private displayWhisperSettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: 'OpenAI Whisper 配置（语音转写）' });
+    containerEl.createEl('h3', { text: this.tr('whisperHeader') });
 
     new Setting(containerEl)
-      .setName('API Key')
-      .setDesc('用于调用转写接口（仅 API 计费，不是 ChatGPT Plus）')
+      .setName(this.tr('apiKeyName'))
+      .setDesc(this.tr('whisperApiKeyDesc'))
       .addText(text => {
         text
           .setPlaceholder('sk-...')
@@ -333,8 +504,8 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('API Base URL')
-      .setDesc('默认 OpenAI，或填写兼容地址（代理/第三方平台）')
+      .setName(this.tr('apiBaseName'))
+      .setDesc(this.tr('whisperApiBaseDesc'))
       .addText(text => text
         .setPlaceholder('https://api.openai.com/v1')
         .setValue(this.plugin.settings.whisperApiBaseUrl)
@@ -344,8 +515,8 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('模型')
-      .setDesc('一般保持 whisper-1 即可')
+      .setName(this.tr('modelName'))
+      .setDesc(this.tr('whisperModelDesc'))
       .addText(text => text
         .setPlaceholder('whisper-1')
         .setValue(this.plugin.settings.whisperModel)
@@ -356,11 +527,11 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
   }
 
   private displayXfyunSettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: '科大讯飞配置（语音转写）' });
+    containerEl.createEl('h3', { text: this.tr('xfyunHeader') });
 
     new Setting(containerEl)
-      .setName('App ID')
-      .setDesc('在讯飞开放平台创建应用后获取')
+      .setName(this.tr('xfyunAppIdName'))
+      .setDesc(this.tr('xfyunAppIdDesc'))
       .addText(text => text
         .setValue(this.plugin.settings.xfyunAppId)
         .onChange(async (value) => {
@@ -369,7 +540,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Secret Key')
+      .setName(this.tr('xfyunSecretName'))
       .addText(text => {
         text
           .setValue(this.plugin.settings.xfyunSecretKey)
@@ -381,16 +552,16 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
       });
 
     const descEl = containerEl.createEl('div', { cls: 'setting-item-description' });
-    descEl.createEl('p', { text: '讯飞开放平台: https://www.xfyun.cn/' });
-    descEl.createEl('p', { text: '新用户可获得 50 小时免费转写额度' });
+    descEl.createEl('p', { text: this.tr('xfyunDesc1') });
+    descEl.createEl('p', { text: this.tr('xfyunDesc2') });
   }
 
   private displayLocalWhisperSettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: '本地 Whisper 配置（离线转写）' });
+    containerEl.createEl('h3', { text: this.tr('localWhisperHeader') });
 
     new Setting(containerEl)
-      .setName('whisper.cpp 路径')
-      .setDesc('whisper.cpp 可执行文件完整路径（如 whisper-cli.exe）')
+      .setName(this.tr('localWhisperCppName'))
+      .setDesc(this.tr('localWhisperCppDesc'))
       .addText(text => text
         .setPlaceholder('D:/project/whisper.cpp/Release/whisper-cli.exe')
         .setValue(this.plugin.settings.whisperCppPath)
@@ -400,8 +571,8 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('模型文件路径')
-      .setDesc('GGML 模型路径（推荐 base/small，精度与速度更平衡）')
+      .setName(this.tr('localWhisperModelPathName'))
+      .setDesc(this.tr('localWhisperModelPathDesc'))
       .addText(text => text
         .setPlaceholder('D:/project/whisper.cpp/models/ggml-base.bin')
         .setValue(this.plugin.settings.whisperModelPath)
@@ -411,8 +582,8 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('CPU 线程数')
-      .setDesc('更多线程 = 更快转写，但也更占系统资源')
+      .setName(this.tr('localWhisperThreadsName'))
+      .setDesc(this.tr('localWhisperThreadsDesc'))
       .addSlider(slider => slider
         .setLimits(1, 16, 1)
         .setValue(this.plugin.settings.whisperThreads)
@@ -423,17 +594,17 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     const descEl = containerEl.createEl('div', { cls: 'setting-item-description' });
-    descEl.createEl('p', { text: 'whisper.cpp: https://github.com/ggerganov/whisper.cpp/releases' });
-    descEl.createEl('p', { text: '模型下载: https://huggingface.co/ggerganov/whisper.cpp' });
-    descEl.createEl('p', { text: '推荐: base (~142MB) 或 small (~466MB)' });
+    descEl.createEl('p', { text: this.tr('localWhisperDesc1') });
+    descEl.createEl('p', { text: this.tr('localWhisperDesc2') });
+    descEl.createEl('p', { text: this.tr('localWhisperDesc3') });
   }
 
   private displayOpenAICompatSettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: 'OpenAI 兼容 API 配置（AI 纪要）' });
+    containerEl.createEl('h3', { text: this.tr('openAICompatHeader') });
 
     new Setting(containerEl)
-      .setName('API Key')
-      .setDesc('用于纪要生成（支持 OpenAI/DeepSeek/硅基流动等）')
+      .setName(this.tr('apiKeyName'))
+      .setDesc(this.tr('openAICompatApiKeyDesc'))
       .addText(text => {
         text
           .setPlaceholder('sk-...')
@@ -446,8 +617,8 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('API Base URL')
-      .setDesc('OpenAI / DeepSeek / 硅基流动等的 API 地址')
+      .setName(this.tr('apiBaseName'))
+      .setDesc(this.tr('openAICompatApiBaseDesc'))
       .addText(text => text
         .setPlaceholder('https://api.openai.com/v1')
         .setValue(this.plugin.settings.llmApiBaseUrl)
@@ -457,8 +628,8 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('模型名称')
-      .setDesc('示例：gpt-4o / deepseek-chat / glm-4')
+      .setName(this.tr('modelName'))
+      .setDesc(this.tr('openAICompatModelDesc'))
       .addText(text => text
         .setPlaceholder('gpt-4o')
         .setValue(this.plugin.settings.llmModel)
@@ -469,11 +640,11 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
   }
 
   private displayClaudeSettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: 'Claude API 配置（AI 纪要）' });
+    containerEl.createEl('h3', { text: this.tr('claudeHeader') });
 
     new Setting(containerEl)
-      .setName('API Key')
-      .setDesc('Anthropic API Key（API 独立计费，非 Claude Pro）')
+      .setName(this.tr('apiKeyName'))
+      .setDesc(this.tr('claudeApiKeyDesc'))
       .addText(text => {
         text
           .setPlaceholder('sk-ant-...')
@@ -486,7 +657,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('模型名称')
+      .setName(this.tr('modelName'))
       .addText(text => text
         .setPlaceholder('claude-sonnet-4-5-20250929')
         .setValue(this.plugin.settings.claudeModel)
@@ -494,5 +665,35 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
           this.plugin.settings.claudeModel = value;
           await this.plugin.saveSettings();
         }));
+  }
+
+  private addLanguageButton(
+    setting: Setting,
+    locale: SettingsLocale,
+    label: string,
+  ): void {
+    setting.addButton((button) => {
+      button.setButtonText(label);
+      if (this.locale() === locale) {
+        button.setCta();
+      }
+      button.onClick(async () => {
+        if (this.locale() === locale) {
+          return;
+        }
+        this.plugin.settings.uiLanguage = locale;
+        await this.plugin.saveSettings();
+        this.display();
+      });
+    });
+  }
+
+  private locale(): SettingsLocale {
+    return this.plugin.settings.uiLanguage === 'en' ? 'en' : 'zh';
+  }
+
+  private tr(key: SettingsTextKey): string {
+    const locale = this.locale();
+    return SETTINGS_TEXT[locale][key] || SETTINGS_TEXT.zh[key];
   }
 }

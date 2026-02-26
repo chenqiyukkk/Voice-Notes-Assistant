@@ -34,7 +34,7 @@ export class RecorderControlView extends ItemView {
   }
 
   getDisplayText(): string {
-    return '语音纪要助手';
+    return this.t('panel.title');
   }
 
   getIcon(): string {
@@ -256,7 +256,7 @@ export class RecorderControlView extends ItemView {
       this.renderRecordingRow(item);
     }
 
-    this.setManagerStatus(`共 ${items.length} 条录音`);
+    this.setManagerStatus(this.t('manager.totalCount', { count: items.length }));
   }
 
   private renderRecordingRow(item: RecordingListItem): void {
@@ -327,10 +327,14 @@ export class RecorderControlView extends ItemView {
     this.setManagerBusy(true);
     try {
       if (mode === 'transcribe') {
-        this.setManagerStatus(`转写中: ${filePath}`);
+        this.setManagerStatus(this.t('manager.singleTranscribing', {
+          file: this.extractFileName(filePath),
+        }));
         await this.plugin.transcribeAudioFile(filePath);
       } else {
-        this.setManagerStatus(`总结中: ${filePath}`);
+        this.setManagerStatus(this.t('manager.singleSummarizing', {
+          file: this.extractFileName(filePath),
+        }));
         const preferredNotePath = this.plugin.app.workspace.getActiveFile()?.path;
         await this.plugin.summarizeAudioFile(filePath, undefined, preferredNotePath);
       }
@@ -371,7 +375,10 @@ export class RecorderControlView extends ItemView {
 
       if (result.failed.length > 0) {
         const firstFail = result.failed[0];
-        new Notice(`批量处理中有失败: ${this.extractFileName(firstFail.filePath)} - ${firstFail.reason}`);
+        new Notice(this.t('manager.batchFailed', {
+          file: this.extractFileName(firstFail.filePath),
+          reason: firstFail.reason,
+        }));
       }
 
       await this.refreshRecordingList();

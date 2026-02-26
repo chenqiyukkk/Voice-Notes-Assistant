@@ -333,6 +333,22 @@ export default class LectureRecorderPlugin extends Plugin {
     return await this.transcriptionService.getCachedTranscription(filePath);
   }
 
+  async getCachedSummary(filePath: string): Promise<string | null> {
+    if (!filePath) {
+      return null;
+    }
+
+    const sidecarPath = this.getSummarySidecarPath(filePath);
+    const sidecar = this.app.vault.getAbstractFileByPath(sidecarPath);
+    if (!(sidecar instanceof TFile)) {
+      return null;
+    }
+
+    const content = await this.app.vault.read(sidecar);
+    const extracted = this.extractSummaryTextFromSidecar(content);
+    return extracted || null;
+  }
+
   async summarizeAudioFile(
     filePath: string,
     transcription?: TranscriptionResult,
@@ -393,24 +409,12 @@ export default class LectureRecorderPlugin extends Plugin {
         },
       );
 
-      const targetNotePath = await this.insertSummaryBelowEmbed(
-        filePath,
-        runResult.summary,
-        context,
-        preferredNotePath,
-      );
       const sidecarPath = await this.saveSummarySidecar(filePath, runResult.summary, context);
 
       progressNotice?.hide();
 
-      if (targetNotePath) {
-        if (!silent) {
-          new Notice(`纪要已写入 ${targetNotePath}（缓存: ${sidecarPath}）`);
-        }
-      } else {
-        if (!silent) {
-          new Notice(`纪要已保存到 ${sidecarPath}`);
-        }
+      if (!silent) {
+        new Notice(`纪要已生成，可在音频块“纪要结果”折叠栏查看（缓存: ${sidecarPath}）`);
       }
 
       return runResult.summary;
@@ -1034,6 +1038,20 @@ export default class LectureRecorderPlugin extends Plugin {
 
   private getSummarySidecarPath(audioFilePath: string): string {
     return `${audioFilePath}.summary.md`;
+  }
+
+  private extractSummaryTextFromSidecar(content: string): string {
+    const normalized = content.trim();
+    if (!normalized) {
+      return '';
+    }
+
+    const structured = normalized.match(/^##[^\n]*\n(?:\n)?(?:- [^\n]*\n)+\n([\s\S]*)$/);
+    if (structured?.[1]) {
+      return structured[1].trim();
+    }
+
+    return normalized;
   }
 
   private async saveSummarySidecar(

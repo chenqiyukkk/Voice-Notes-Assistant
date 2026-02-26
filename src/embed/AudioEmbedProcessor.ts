@@ -3,6 +3,7 @@ import type LectureRecorderPlugin from '../main';
 import type { TranscriptionResult } from '../transcription/types';
 import { formatTime } from '../utils/timeUtils';
 import { attachWaveform } from '../utils/waveform';
+import { i18n } from '../i18n';
 
 interface AudioEmbedParams {
   file: string;
@@ -11,6 +12,12 @@ interface AudioEmbedParams {
   status?: string;
   id?: string;
   transcription?: string;
+}
+
+interface ResultPanel {
+  detailsEl: HTMLDetailsElement;
+  summaryEl: HTMLElement;
+  contentEl: HTMLElement;
 }
 
 export class AudioEmbedProcessor {
@@ -67,17 +74,19 @@ export class AudioEmbedProcessor {
       const placeholderEl = el.createEl('div', { cls: 'lecture-recording-reading-placeholder' });
       placeholderEl.createEl('div', {
         cls: 'recording-reading-title',
-        text: `🎙 ${params.title || '未命名课程'}`,
+        text: this.t('player.reading.title', {
+          title: params.title || this.t('recording.title.fallback'),
+        }),
       });
       placeholderEl.createEl('div', {
         cls: 'recording-reading-tip',
-        text: '录音进行中，请切换到编辑模式操作',
+        text: this.t('player.reading.tip'),
       });
       return;
     }
 
     if (!params.file) {
-      el.createEl('div', { cls: 'player-error', text: '缺少音频文件路径' });
+      el.createEl('div', { cls: 'player-error', text: this.t('player.error.missingPath') });
       return;
     }
 
@@ -86,7 +95,7 @@ export class AudioEmbedProcessor {
     if (!audioFile || !(audioFile instanceof TFile)) {
       el.createEl('div', {
         cls: 'player-error',
-        text: `音频文件未找到: ${params.file}`,
+        text: this.t('player.error.fileNotFound', { file: params.file }),
       });
       return;
     }
@@ -165,14 +174,16 @@ export class AudioEmbedProcessor {
     });
     headerEl.createEl('span', {
       cls: 'player-title',
-      text: params.title || '未命名录音',
+      text: params.title || this.t('player.title.fallback'),
     });
     headerEl.createEl('span', {
       cls: 'player-duration-badge',
       text: params.duration || '--:--:--',
     });
     const transcriptPanel = this.createTranscriptPanel(container);
+    const summaryPanel = this.createSummaryPanel(container);
     void this.refreshTranscriptPanel(params.file, transcriptPanel);
+    void this.refreshSummaryPanel(params.file, summaryPanel);
     const waveformCleanup = this.plugin.settings.waveformEnabled
       ? attachWaveform({
         hostEl: container,
@@ -189,7 +200,7 @@ export class AudioEmbedProcessor {
     // 播放按钮
     const playBtn = controlsEl.createEl('button', {
       cls: 'play-btn',
-      attr: { 'aria-label': '播放' },
+      attr: { 'aria-label': this.t('player.play.aria') },
     });
     playBtn.innerHTML = '▶';
 
@@ -219,11 +230,11 @@ export class AudioEmbedProcessor {
     const actionsEl = container.createEl('div', { cls: 'player-actions' });
     const transcribeBtn = actionsEl.createEl('button', {
       cls: 'action-btn',
-      text: '📝 转写录音',
+      text: this.t('player.action.transcribe'),
     });
     const summarizeBtn = actionsEl.createEl('button', {
       cls: 'action-btn',
-      text: '✨ 生成纪要',
+      text: this.t('player.action.summarize'),
     });
 
     // ==================== 事件绑定 ====================
@@ -324,11 +335,19 @@ export class AudioEmbedProcessor {
     // 总结按钮
     summarizeBtn.addEventListener('click', async () => {
       summarizeBtn.disabled = true;
+      let generatedSummary: string | null = null;
       try {
-        await this.plugin.summarizeAudioFile(params.file, undefined, sourcePath);
+        generatedSummary = await this.plugin.summarizeAudioFile(params.file, undefined, sourcePath);
+        if (!destroyed && generatedSummary?.trim()) {
+          summaryPanel.detailsEl.open = true;
+          this.applySummaryToPanel(generatedSummary, summaryPanel);
+        }
       } finally {
         if (!destroyed) {
           summarizeBtn.disabled = false;
+          if (!generatedSummary?.trim()) {
+            void this.refreshSummaryPanel(params.file, summaryPanel);
+          }
         }
       }
     });
@@ -416,19 +435,33 @@ export class AudioEmbedProcessor {
     return null;
   }
 
-  private createTranscriptPanel(container: HTMLElement): {
-    detailsEl: HTMLDetailsElement;
-    summaryEl: HTMLElement;
-    contentEl: HTMLElement;
-  } {
+  private createTranscriptPanel(container: HTMLElement): ResultPanel {
     const detailsEl = container.createEl('details', { cls: 'transcript-collapse' }) as HTMLDetailsElement;
     const summaryEl = detailsEl.createEl('summary', {
       cls: 'transcript-summary',
-      text: '🧾 转写结果（未生成）',
+      text: this.t('player.transcript.emptyTitle'),
     });
     const contentEl = detailsEl.createEl('div', {
       cls: 'transcript-content',
-      text: '暂无转写结果，点击“转写录音”后可在此展开查看。',
+      text: this.t('player.transcript.emptyContent'),
+    });
+
+    return {
+      detailsEl,
+      summaryEl,
+      contentEl,
+    };
+  }
+
+  private createSummaryPanel(container: HTMLElement): ResultPanel {
+    const detailsEl = container.createEl('details', { cls: 'summary-collapse' }) as HTMLDetailsElement;
+    const summaryEl = detailsEl.createEl('summary', {
+      cls: 'summary-summary',
+      text: this.t('player.summary.emptyTitle'),
+    });
+    const contentEl = detailsEl.createEl('div', {
+      cls: 'summary-content',
+      text: this.t('player.summary.emptyContent'),
     });
 
     return {
@@ -454,24 +487,49 @@ export class AudioEmbedProcessor {
     this.applyTranscriptionToPanel(cached, panel);
   }
 
+  private async refreshSummaryPanel(
+    filePath: string,
+    panel: ResultPanel,
+  ): Promise<void> {
+    const cached = await this.plugin.getCachedSummary(filePath);
+    if (!panel.contentEl.isConnected) {
+      return;
+    }
+
+    this.applySummaryToPanel(cached, panel);
+  }
+
   private applyTranscriptionToPanel(
     transcription: TranscriptionResult | null,
-    panel: {
-      detailsEl: HTMLDetailsElement;
-      summaryEl: HTMLElement;
-      contentEl: HTMLElement;
-    },
+    panel: ResultPanel,
   ): void {
     const fullText = transcription?.fullText?.trim() || '';
     if (!fullText) {
-      panel.summaryEl.textContent = '🧾 转写结果（未生成）';
-      panel.contentEl.textContent = '暂无转写结果，点击“转写录音”后可在此展开查看。';
+      panel.summaryEl.textContent = this.t('player.transcript.emptyTitle');
+      panel.contentEl.textContent = this.t('player.transcript.emptyContent');
       return;
     }
 
     const segmentCount = transcription?.segments?.length || 1;
-    panel.summaryEl.textContent = `🧾 转写结果（${segmentCount} 段，点击展开）`;
+    panel.summaryEl.textContent = this.t('player.transcript.readyTitle', { count: segmentCount });
     panel.contentEl.textContent = fullText;
+  }
+
+  private applySummaryToPanel(
+    summaryMarkdown: string | null,
+    panel: ResultPanel,
+  ): void {
+    const normalized = summaryMarkdown?.trim() || '';
+    if (!normalized) {
+      panel.summaryEl.textContent = this.t('player.summary.emptyTitle');
+      panel.contentEl.textContent = this.t('player.summary.emptyContent');
+      return;
+    }
+
+    panel.summaryEl.textContent = this.t('player.summary.readyTitle', {
+      chars: normalized.length,
+    });
+    panel.contentEl.textContent = normalized;
   }
 
   /**
@@ -491,5 +549,12 @@ export class AudioEmbedProcessor {
       id: params.id,
       transcription: params.transcription,
     };
+  }
+
+  private t(
+    key: Parameters<typeof i18n>[1],
+    vars?: Record<string, string | number>,
+  ): string {
+    return i18n(this.plugin.settings.uiLanguage, key, vars);
   }
 }
