@@ -17,7 +17,7 @@ Voice Notes Assistant is an Obsidian plugin for recording, transcription, and AI
 
 - Plugin ID: `lecture-recorder`
 - Name: `Voice Notes Assistant`
-- Current version: `0.1.1`
+- Current version: `0.1.2`
 - Min Obsidian version: `1.0.0`
 - Desktop only: `true`
 
@@ -110,12 +110,12 @@ npm run release:check
 
 ```bash
 git add .
-git commit -m "chore: prepare 0.1.1 for Obsidian review"
-git tag 0.1.1
+git commit -m "chore: prepare 0.1.2 for Obsidian review"
+git tag 0.1.2
 git push origin main --tags
 ```
 
-3. Create a GitHub Release for tag `0.1.1` and upload:
+3. Create a GitHub Release for tag `0.1.2` and upload:
    - `manifest.json`
    - `main.js`
    - `styles.css`

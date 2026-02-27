@@ -1,6 +1,6 @@
 {
   "name": "obsidian-lecture-recorder",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Obsidian plugin for recording, transcription, and AI summaries.",
   "main": "main.js",
   "scripts": {
