@@ -63,7 +63,7 @@ export class TimestampManager {
     }
 
     audio.currentTime = seconds;
-    audio.play();
+    void audio.play();
     new Notice(`跳转到 ${timeStr}`);
   }
 

@@ -1,3 +1,4 @@
+import { requestUrl } from 'obsidian';
 import type LectureRecorderPlugin from '../main';
 import type { TranscriptionResult } from '../transcription/types';
 import { buildSummaryPrompts } from './PromptTemplates';
@@ -27,14 +28,14 @@ export class ClaudeProvider implements ISummaryProvider {
     this.plugin = plugin;
   }
 
-  async validateConfig(): Promise<ProviderValidationResult> {
+  validateConfig(): Promise<ProviderValidationResult> {
     if (!normalizeSetting(this.plugin.settings.claudeApiKey)) {
-      return { valid: false, message: 'Claude API Key 未配置' };
+      return Promise.resolve({ valid: false, message: 'Claude API key 未配置' });
     }
     if (!normalizeSetting(this.plugin.settings.claudeModel)) {
-      return { valid: false, message: 'Claude 模型名称未配置' };
+      return Promise.resolve({ valid: false, message: 'Claude 模型名称未配置' });
     }
-    return { valid: true, message: '配置有效' };
+    return Promise.resolve({ valid: true, message: '配置有效' });
   }
 
   async summarize(
@@ -53,10 +54,11 @@ export class ClaudeProvider implements ISummaryProvider {
 
     onProgress?.(`正在调用 ${model} 生成课堂纪要`);
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await requestUrl({
+      url: 'https://api.anthropic.com/v1/messages',
       method: 'POST',
+      contentType: 'application/json',
       headers: {
-        'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
@@ -72,9 +74,10 @@ export class ClaudeProvider implements ISummaryProvider {
           },
         ],
       }),
+      throw: false,
     });
 
-    const raw = await response.text();
+    const raw = response.text || '';
     let payload: ClaudeResponse | null = null;
     try {
       payload = JSON.parse(raw) as ClaudeResponse;
@@ -82,8 +85,8 @@ export class ClaudeProvider implements ISummaryProvider {
       payload = null;
     }
 
-    if (!response.ok) {
-      const message = payload?.error?.message || raw || response.statusText;
+    if (response.status >= 400) {
+      const message = payload?.error?.message || raw || '请求失败';
       throw new Error(`Claude 总结请求失败 (${response.status}): ${message}`);
     }
 

@@ -172,7 +172,7 @@ const MESSAGES: Record<UiLanguage, Record<I18nKey, string>> = {
 };
 
 export function i18n(
-  language: UiLanguage | string | undefined,
+  language: UiLanguage | undefined,
   key: I18nKey,
   vars?: Record<string, string | number>,
 ): string {

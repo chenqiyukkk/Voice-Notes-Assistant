@@ -1,3 +1,4 @@
+import { requestUrl } from 'obsidian';
 import type LectureRecorderPlugin from '../main';
 import type { TranscriptionResult } from '../transcription/types';
 import { buildSummaryPrompts } from './PromptTemplates';
@@ -28,17 +29,17 @@ export class OpenAICompatProvider implements ISummaryProvider {
     this.plugin = plugin;
   }
 
-  async validateConfig(): Promise<ProviderValidationResult> {
+  validateConfig(): Promise<ProviderValidationResult> {
     if (!normalizeSetting(this.plugin.settings.llmApiKey)) {
-      return { valid: false, message: '总结 API Key 未配置' };
+      return Promise.resolve({ valid: false, message: '总结 API key 未配置' });
     }
     if (!normalizeSetting(this.plugin.settings.llmApiBaseUrl)) {
-      return { valid: false, message: '总结 API Base URL 未配置' };
+      return Promise.resolve({ valid: false, message: '总结 API base URL 未配置' });
     }
     if (!normalizeSetting(this.plugin.settings.llmModel)) {
-      return { valid: false, message: '总结模型名称未配置' };
+      return Promise.resolve({ valid: false, message: '总结模型名称未配置' });
     }
-    return { valid: true, message: '配置有效' };
+    return Promise.resolve({ valid: true, message: '配置有效' });
   }
 
   async summarize(
@@ -58,10 +59,11 @@ export class OpenAICompatProvider implements ISummaryProvider {
 
     onProgress?.(`正在调用 ${model} 生成课堂纪要`);
 
-    const response = await fetch(`${baseUrl}/chat/completions`, {
+    const response = await requestUrl({
+      url: `${baseUrl}/chat/completions`,
       method: 'POST',
+      contentType: 'application/json',
       headers: {
-        'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
@@ -72,9 +74,10 @@ export class OpenAICompatProvider implements ISummaryProvider {
           { role: 'user', content: prompts.userPrompt },
         ],
       }),
+      throw: false,
     });
 
-    const raw = await response.text();
+    const raw = response.text || '';
     let payload: OpenAICompatResponse | null = null;
     try {
       payload = JSON.parse(raw) as OpenAICompatResponse;
@@ -82,8 +85,8 @@ export class OpenAICompatProvider implements ISummaryProvider {
       payload = null;
     }
 
-    if (!response.ok) {
-      const errorMessage = payload?.error?.message || raw || response.statusText;
+    if (response.status >= 400) {
+      const errorMessage = payload?.error?.message || raw || '请求失败';
       throw new Error(`总结请求失败 (${response.status}): ${errorMessage}`);
     }
 

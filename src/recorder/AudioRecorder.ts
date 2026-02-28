@@ -106,7 +106,7 @@ export class AudioRecorder {
 
     const mimeType = this.getSupportedMimeType();
     if (this.plugin.settings.audioFormat === 'wav' && !mimeType.includes('wav')) {
-      new Notice('当前环境不支持直接 WAV 录制，已启用“录制后自动转 WAV 保存”');
+      new Notice('当前环境不支持直接 wav 录制，已启用“录制后自动转 wav 保存”');
     }
     const bitrate = AUDIO_BITRATES[this.plugin.settings.audioQuality] || AUDIO_BITRATES.standard;
 
@@ -234,7 +234,7 @@ export class AudioRecorder {
         outputMimeType = 'audio/wav';
       } catch (err) {
         console.warn('Lecture Recorder: WAV 转码失败，已回退原始格式', err);
-        new Notice('WAV 转码失败，已回退原始格式保存');
+        new Notice('wav 转码失败，已回退原始格式保存');
       }
     }
 

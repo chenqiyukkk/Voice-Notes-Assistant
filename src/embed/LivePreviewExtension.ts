@@ -233,15 +233,15 @@ class AudioPlayerWidget extends WidgetType {
     audio.addEventListener('ended', () => {
       playBtn.textContent = '▶';
       playBtn.removeClass('playing');
-      progressFill.style.width = '0%';
-      progressHandle.style.left = '0%';
+      progressFill.setCssProps({ width: '0%' });
+      progressHandle.setCssProps({ left: '0%' });
     });
 
     audio.addEventListener('timeupdate', () => {
       if (!audio.duration || isNaN(audio.duration)) return;
       const pct = (audio.currentTime / audio.duration) * 100;
-      progressFill.style.width = `${pct}%`;
-      progressHandle.style.left = `${pct}%`;
+      progressFill.setCssProps({ width: `${pct}%` });
+      progressHandle.setCssProps({ left: `${pct}%` });
       timeEl.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
     });
 
@@ -284,35 +284,39 @@ class AudioPlayerWidget extends WidgetType {
       audio.playbackRate = parseFloat(speedSelect.value);
     });
 
-    transcribeBtn.addEventListener('click', async () => {
-      const runResult = await this.plugin.transcribeAudioFile(params.file);
-      if (runResult?.result?.fullText) {
-        transcriptPanel.detailsEl.open = true;
-        this.applyTranscriptionToPanel(runResult.result, transcriptPanel);
-      }
-      if (!this.destroyed && !runResult?.result) {
-        void this.refreshTranscriptPanel(params.file, transcriptPanel);
-      }
+    transcribeBtn.addEventListener('click', () => {
+      void (async () => {
+        const runResult = await this.plugin.transcribeAudioFile(params.file);
+        if (runResult?.result?.fullText) {
+          transcriptPanel.detailsEl.open = true;
+          this.applyTranscriptionToPanel(runResult.result, transcriptPanel);
+        }
+        if (!this.destroyed && !runResult?.result) {
+          void this.refreshTranscriptPanel(params.file, transcriptPanel);
+        }
+      })();
     });
 
-    summarizeBtn.addEventListener('click', async () => {
-      summarizeBtn.disabled = true;
-      const preferredNotePath = this.plugin.app.workspace.getActiveFile()?.path;
-      let generatedSummary: string | null = null;
-      try {
-        generatedSummary = await this.plugin.summarizeAudioFile(params.file, undefined, preferredNotePath);
-        if (!this.destroyed && generatedSummary?.trim()) {
-          summaryPanel.detailsEl.open = true;
-          this.applySummaryToPanel(generatedSummary, summaryPanel);
-        }
-      } finally {
-        if (!this.destroyed) {
-          summarizeBtn.disabled = false;
-          if (!generatedSummary?.trim()) {
-            void this.refreshSummaryPanel(params.file, summaryPanel);
+    summarizeBtn.addEventListener('click', () => {
+      void (async () => {
+        summarizeBtn.disabled = true;
+        const preferredNotePath = this.plugin.app.workspace.getActiveFile()?.path;
+        let generatedSummary: string | null = null;
+        try {
+          generatedSummary = await this.plugin.summarizeAudioFile(params.file, undefined, preferredNotePath);
+          if (!this.destroyed && generatedSummary?.trim()) {
+            summaryPanel.detailsEl.open = true;
+            this.applySummaryToPanel(generatedSummary, summaryPanel);
+          }
+        } finally {
+          if (!this.destroyed) {
+            summarizeBtn.disabled = false;
+            if (!generatedSummary?.trim()) {
+              void this.refreshSummaryPanel(params.file, summaryPanel);
+            }
           }
         }
-      }
+      })();
     });
   }
 
@@ -387,7 +391,7 @@ class AudioPlayerWidget extends WidgetType {
   }
 
   private createTranscriptPanel(container: HTMLElement): ResultPanel {
-    const detailsEl = container.createEl('details', { cls: 'transcript-collapse' }) as HTMLDetailsElement;
+    const detailsEl = container.createEl('details', { cls: 'transcript-collapse' });
     const summaryEl = detailsEl.createEl('summary', {
       cls: 'transcript-summary',
       text: this.t('player.transcript.emptyTitle'),
@@ -401,7 +405,7 @@ class AudioPlayerWidget extends WidgetType {
   }
 
   private createSummaryPanel(container: HTMLElement): ResultPanel {
-    const detailsEl = container.createEl('details', { cls: 'summary-collapse' }) as HTMLDetailsElement;
+    const detailsEl = container.createEl('details', { cls: 'summary-collapse' });
     const summaryEl = detailsEl.createEl('summary', {
       cls: 'summary-summary',
       text: this.t('player.summary.emptyTitle'),
@@ -562,14 +566,16 @@ class RecordingWidget extends WidgetType {
       syncState();
     });
 
-    stopBtn.addEventListener('click', async (e) => {
+    stopBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
       if (stopBtn.disabled) return;
 
-      pauseBtn.disabled = true;
-      stopBtn.disabled = true;
-      await this.plugin.stopRecordingAndFinalize();
+      void (async () => {
+        pauseBtn.disabled = true;
+        stopBtn.disabled = true;
+        await this.plugin.stopRecordingAndFinalize();
+      })();
     });
 
     syncState();

@@ -27,6 +27,7 @@ export function attachWaveform(options: WaveformOptions): CleanupFn {
   let peaks: number[] | null = null;
   let destroyed = false;
   let rafId = 0;
+  let renderWidth = 1;
   const maxSizeMB = options.maxFileSizeMB || DEFAULT_MAX_FILE_SIZE_MB;
   const maxSizeBytes = Math.max(1, maxSizeMB) * 1024 * 1024;
 
@@ -42,11 +43,11 @@ export function attachWaveform(options: WaveformOptions): CleanupFn {
 
   const updateStatus = (text: string) => {
     statusEl.textContent = text;
-    statusEl.style.display = '';
+    statusEl.removeClass('is-hidden');
   };
 
   const hideStatus = () => {
-    statusEl.style.display = 'none';
+    statusEl.addClass('is-hidden');
     containerEl.removeClass('is-loading');
   };
 
@@ -54,11 +55,14 @@ export function attachWaveform(options: WaveformOptions): CleanupFn {
     const width = Math.max(1, Math.floor(containerEl.clientWidth));
     const height = WAVEFORM_HEIGHT;
     const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    renderWidth = width;
 
     canvasEl.width = width * dpr;
     canvasEl.height = height * dpr;
-    canvasEl.style.width = `${width}px`;
-    canvasEl.style.height = `${height}px`;
+    canvasEl.setCssProps({
+      width: `${width}px`,
+      height: `${height}px`,
+    });
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
@@ -67,7 +71,7 @@ export function attachWaveform(options: WaveformOptions): CleanupFn {
   const renderWaveform = () => {
     resizeCanvas();
 
-    const width = parseInt(canvasEl.style.width || '0', 10) || 1;
+    const width = renderWidth;
     const height = WAVEFORM_HEIGHT;
     ctx.clearRect(0, 0, width, height);
 

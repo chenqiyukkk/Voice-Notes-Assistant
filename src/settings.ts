@@ -19,6 +19,7 @@ const SETTINGS_TEXT = {
     sectionAutomation: '4) 自动流程（推荐）',
     sectionTemplate: '5) 纪要模板（可选）',
     sectionAdvanced: '6) 高级优化（按需）',
+    recordingStoragePlaceholder: 'recordings',
     recordingStorageName: '录音文件保存位置',
     recordingStorageDesc: '录音文件会保存到你的 Vault 目录中（建议保持默认）',
     audioFormatName: '音频格式',
@@ -88,6 +89,11 @@ const SETTINGS_TEXT = {
     openAICompatApiBaseDesc: 'OpenAI / DeepSeek / 硅基流动等的 API 地址',
     openAICompatModelDesc: '示例：gpt-4o / deepseek-chat / glm-4',
     claudeApiKeyDesc: 'Anthropic API Key（API 独立计费，非 Claude Pro）',
+    apiKeyPlaceholder: '请输入 API key',
+    whisperModelPlaceholder: '请输入模型名，例如 whisper-1',
+    openAICompatModelPlaceholder: '请输入模型名，例如 gpt-4o',
+    claudeApiKeyPlaceholder: '请输入 Claude API key',
+    claudeModelPlaceholder: '请输入模型名，例如 claude-sonnet-4-5-20250929',
   },
   en: {
     title: 'Voice Notes Assistant',
@@ -104,6 +110,7 @@ const SETTINGS_TEXT = {
     sectionAutomation: '4) Automation (Recommended)',
     sectionTemplate: '5) Summary Template (Optional)',
     sectionAdvanced: '6) Advanced Optimization',
+    recordingStoragePlaceholder: 'Recordings',
     recordingStorageName: 'Recording Storage Path',
     recordingStorageDesc: 'Recordings are saved inside your vault (default recommended).',
     audioFormatName: 'Audio Format',
@@ -173,6 +180,11 @@ const SETTINGS_TEXT = {
     openAICompatApiBaseDesc: 'API endpoint for OpenAI / DeepSeek / SiliconFlow, etc.',
     openAICompatModelDesc: 'Example: gpt-4o / deepseek-chat / glm-4',
     claudeApiKeyDesc: 'Anthropic API key (separate API billing, not Claude Pro).',
+    apiKeyPlaceholder: 'Enter API key',
+    whisperModelPlaceholder: 'Enter model name, for example whisper-1',
+    openAICompatModelPlaceholder: 'Enter model name, for example gpt-4o',
+    claudeApiKeyPlaceholder: 'Enter Claude API key',
+    claudeModelPlaceholder: 'Enter model name, for example claude-sonnet-4-5-20250929',
   },
 } as const;
 
@@ -284,7 +296,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h1', { text: this.tr('title') });
+    this.addHeading(containerEl, this.tr('title'));
     const intro = containerEl.createEl('div', { cls: 'setting-item-description' });
     intro.createEl('p', { text: this.tr('intro1') });
     intro.createEl('p', { text: this.tr('intro2') });
@@ -297,13 +309,13 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
     this.addLanguageButton(languageSetting, 'en', this.tr('languageEn'));
 
     // ==================== 录音设置 ====================
-    containerEl.createEl('h2', { text: this.tr('sectionRecording') });
+    this.addHeading(containerEl, this.tr('sectionRecording'));
 
     new Setting(containerEl)
       .setName(this.tr('recordingStorageName'))
       .setDesc(this.tr('recordingStorageDesc'))
       .addText(text => text
-        .setPlaceholder('recordings')
+        .setPlaceholder(this.tr('recordingStoragePlaceholder'))
         .setValue(this.plugin.settings.recordingStoragePath)
         .onChange(async (value) => {
           this.plugin.settings.recordingStoragePath = value || 'recordings';
@@ -336,7 +348,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     // ==================== 语音转写设置 ====================
-    containerEl.createEl('h2', { text: this.tr('sectionTranscription') });
+    this.addHeading(containerEl, this.tr('sectionTranscription'));
 
     new Setting(containerEl)
       .setName(this.tr('transcriptionProviderName'))
@@ -376,7 +388,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
     }
 
     // ==================== AI 总结设置 ====================
-    containerEl.createEl('h2', { text: this.tr('sectionSummary') });
+    this.addHeading(containerEl, this.tr('sectionSummary'));
 
     new Setting(containerEl)
       .setName(this.tr('summaryProviderName'))
@@ -398,7 +410,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
     }
 
     // ==================== 自动化设置 ====================
-    containerEl.createEl('h2', { text: this.tr('sectionAutomation') });
+    this.addHeading(containerEl, this.tr('sectionAutomation'));
 
     new Setting(containerEl)
       .setName(this.tr('autoTranscribeName'))
@@ -421,7 +433,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
         }));
 
     // ==================== 自定义模板 ====================
-    containerEl.createEl('h2', { text: this.tr('sectionTemplate') });
+    this.addHeading(containerEl, this.tr('sectionTemplate'));
 
     new Setting(containerEl)
       .setName(this.tr('customTemplateName'))
@@ -439,7 +451,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
       });
 
     // ==================== Phase 5 设置 ====================
-    containerEl.createEl('h2', { text: this.tr('sectionAdvanced') });
+    this.addHeading(containerEl, this.tr('sectionAdvanced'));
 
     new Setting(containerEl)
       .setName(this.tr('hierarchicalName'))
@@ -487,14 +499,14 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
   }
 
   private displayWhisperSettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: this.tr('whisperHeader') });
+    this.addHeading(containerEl, this.tr('whisperHeader'));
 
     new Setting(containerEl)
       .setName(this.tr('apiKeyName'))
       .setDesc(this.tr('whisperApiKeyDesc'))
       .addText(text => {
         text
-          .setPlaceholder('sk-...')
+          .setPlaceholder(this.tr('apiKeyPlaceholder'))
           .setValue(this.plugin.settings.whisperApiKey)
           .onChange(async (value) => {
             this.plugin.settings.whisperApiKey = value;
@@ -518,7 +530,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
       .setName(this.tr('modelName'))
       .setDesc(this.tr('whisperModelDesc'))
       .addText(text => text
-        .setPlaceholder('whisper-1')
+        .setPlaceholder(this.tr('whisperModelPlaceholder'))
         .setValue(this.plugin.settings.whisperModel)
         .onChange(async (value) => {
           this.plugin.settings.whisperModel = value;
@@ -527,7 +539,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
   }
 
   private displayXfyunSettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: this.tr('xfyunHeader') });
+    this.addHeading(containerEl, this.tr('xfyunHeader'));
 
     new Setting(containerEl)
       .setName(this.tr('xfyunAppIdName'))
@@ -557,7 +569,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
   }
 
   private displayLocalWhisperSettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: this.tr('localWhisperHeader') });
+    this.addHeading(containerEl, this.tr('localWhisperHeader'));
 
     new Setting(containerEl)
       .setName(this.tr('localWhisperCppName'))
@@ -600,14 +612,14 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
   }
 
   private displayOpenAICompatSettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: this.tr('openAICompatHeader') });
+    this.addHeading(containerEl, this.tr('openAICompatHeader'));
 
     new Setting(containerEl)
       .setName(this.tr('apiKeyName'))
       .setDesc(this.tr('openAICompatApiKeyDesc'))
       .addText(text => {
         text
-          .setPlaceholder('sk-...')
+          .setPlaceholder(this.tr('apiKeyPlaceholder'))
           .setValue(this.plugin.settings.llmApiKey)
           .onChange(async (value) => {
             this.plugin.settings.llmApiKey = value;
@@ -631,7 +643,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
       .setName(this.tr('modelName'))
       .setDesc(this.tr('openAICompatModelDesc'))
       .addText(text => text
-        .setPlaceholder('gpt-4o')
+        .setPlaceholder(this.tr('openAICompatModelPlaceholder'))
         .setValue(this.plugin.settings.llmModel)
         .onChange(async (value) => {
           this.plugin.settings.llmModel = value;
@@ -640,14 +652,14 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
   }
 
   private displayClaudeSettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: this.tr('claudeHeader') });
+    this.addHeading(containerEl, this.tr('claudeHeader'));
 
     new Setting(containerEl)
       .setName(this.tr('apiKeyName'))
       .setDesc(this.tr('claudeApiKeyDesc'))
       .addText(text => {
         text
-          .setPlaceholder('sk-ant-...')
+          .setPlaceholder(this.tr('claudeApiKeyPlaceholder'))
           .setValue(this.plugin.settings.claudeApiKey)
           .onChange(async (value) => {
             this.plugin.settings.claudeApiKey = value;
@@ -659,7 +671,7 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName(this.tr('modelName'))
       .addText(text => text
-        .setPlaceholder('claude-sonnet-4-5-20250929')
+        .setPlaceholder(this.tr('claudeModelPlaceholder'))
         .setValue(this.plugin.settings.claudeModel)
         .onChange(async (value) => {
           this.plugin.settings.claudeModel = value;
@@ -690,6 +702,10 @@ export class LectureRecorderSettingTab extends PluginSettingTab {
 
   private locale(): SettingsLocale {
     return this.plugin.settings.uiLanguage === 'en' ? 'en' : 'zh';
+  }
+
+  private addHeading(containerEl: HTMLElement, text: string): void {
+    new Setting(containerEl).setName(text).setHeading();
   }
 
   private tr(key: SettingsTextKey): string {

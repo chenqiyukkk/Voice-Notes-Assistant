@@ -69,8 +69,8 @@ export class RecorderControlView extends ItemView {
     });
     this.pauseBtn.disabled = true;
 
-    this.recordBtn.addEventListener('click', async () => {
-      await this.handleRecordClick();
+    this.recordBtn.addEventListener('click', () => {
+      void this.handleRecordClick();
     });
 
     this.pauseBtn.addEventListener('click', () => {
@@ -88,12 +88,13 @@ export class RecorderControlView extends ItemView {
     await this.refreshRecordingList();
   }
 
-  async onClose(): Promise<void> {
+  onClose(): Promise<void> {
     this.stopTimer();
     if (this.stateListener) {
       this.plugin.recorder.removeStateListener(this.stateListener);
       this.stateListener = null;
     }
+    return Promise.resolve();
   }
 
   private async handleRecordClick(): Promise<void> {
@@ -217,14 +218,14 @@ export class RecorderControlView extends ItemView {
       this.selectedPaths.clear();
     });
 
-    batchTranscribeBtn.addEventListener('click', async () => {
-      await this.runBatchAction('transcribe');
+    batchTranscribeBtn.addEventListener('click', () => {
+      void this.runBatchAction('transcribe');
     });
-    batchSummarizeBtn.addEventListener('click', async () => {
-      await this.runBatchAction('summarize');
+    batchSummarizeBtn.addEventListener('click', () => {
+      void this.runBatchAction('summarize');
     });
-    batchBothBtn.addEventListener('click', async () => {
-      await this.runBatchAction('both');
+    batchBothBtn.addEventListener('click', () => {
+      void this.runBatchAction('both');
     });
 
     this.managerStatusEl = sectionEl.createDiv({ cls: 'recording-manager-status' });
@@ -270,7 +271,7 @@ export class RecorderControlView extends ItemView {
     const checkbox = mainEl.createEl('input', {
       cls: 'recording-item-checkbox',
       attr: { type: 'checkbox' },
-    }) as HTMLInputElement;
+    });
     checkbox.dataset.path = item.filePath;
     checkbox.checked = this.selectedPaths.has(item.filePath);
     checkbox.addEventListener('change', () => {
@@ -308,11 +309,11 @@ export class RecorderControlView extends ItemView {
       text: this.t('item.summarize'),
     });
 
-    transcribeBtn.addEventListener('click', async () => {
-      await this.runSingleAction(item.filePath, 'transcribe');
+    transcribeBtn.addEventListener('click', () => {
+      void this.runSingleAction(item.filePath, 'transcribe');
     });
-    summarizeBtn.addEventListener('click', async () => {
-      await this.runSingleAction(item.filePath, 'summarize');
+    summarizeBtn.addEventListener('click', () => {
+      void this.runSingleAction(item.filePath, 'summarize');
     });
   }
 

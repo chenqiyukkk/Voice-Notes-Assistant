@@ -102,7 +102,7 @@ export default class LectureRecorderPlugin extends Plugin {
 
     // 添加左侧 ribbon icon
     this.addRibbonIcon('microphone', '打开录音面板', () => {
-      this.activateRecorderView();
+      void this.activateRecorderView();
     });
 
     // ==================== 注册命令 ====================
@@ -150,7 +150,7 @@ export default class LectureRecorderPlugin extends Plugin {
       id: 'open-recorder-panel',
       name: '打开录音面板',
       callback: () => {
-        this.activateRecorderView();
+        void this.activateRecorderView();
       },
     });
 
@@ -207,10 +207,12 @@ export default class LectureRecorderPlugin extends Plugin {
 
   }
 
-  async onunload() {
+  onunload(): void {
     // 如果正在录音，先停止
     if (!this.recorder.isIdle()) {
-      await this.stopRecordingAndFinalize({ triggerAutoTranscribe: false });
+      void this.stopRecordingAndFinalize({ triggerAutoTranscribe: false }).catch((err) => {
+        console.error('Lecture Recorder: 插件卸载时停止录音失败', err);
+      });
     }
     this.statusBar.destroy();
   }
@@ -471,7 +473,7 @@ export default class LectureRecorderPlugin extends Plugin {
     };
   }
 
-  async getRecordingListItems(): Promise<RecordingListItem[]> {
+  getRecordingListItems(): RecordingListItem[] {
     const files = this.audioFileManager.listRecordings();
     const items: RecordingListItem[] = files.map((file) => {
       const transcriptPath = this.transcriptionService.getTranscriptPath(file.path);
@@ -634,7 +636,7 @@ export default class LectureRecorderPlugin extends Plugin {
     }
 
     if (leaf) {
-      workspace.revealLeaf(leaf);
+      await workspace.revealLeaf(leaf);
     }
   }
 
@@ -784,12 +786,14 @@ export default class LectureRecorderPlugin extends Plugin {
    */
   private replaceRecordingBlockViaVault(file: TFile, replacement: string): boolean {
     try {
-      this.app.vault.process(file, (content) => {
+      void this.app.vault.process(file, (content) => {
         const range = this.findRecordingBlockRange(content);
         if (!range) {
           return content;
         }
         return content.slice(0, range.start) + replacement + content.slice(range.end);
+      }).catch((err) => {
+        console.error('Lecture Recorder: vault.process 更新录音块失败', err);
       });
       return true;
     } catch (err) {

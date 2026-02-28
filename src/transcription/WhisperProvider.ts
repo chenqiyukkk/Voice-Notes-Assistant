@@ -1,3 +1,4 @@
+import { requestUrl } from 'obsidian';
 import type LectureRecorderPlugin from '../main';
 import { convertToWav16k, splitAudioBuffer } from '../utils/audioUtils';
 import {
@@ -33,14 +34,14 @@ export class WhisperProvider implements ITranscriptionProvider {
     this.plugin = plugin;
   }
 
-  async validateConfig(): Promise<ProviderValidationResult> {
+  validateConfig(): Promise<ProviderValidationResult> {
     if (!normalizeSettingString(this.plugin.settings.whisperApiKey)) {
-      return { valid: false, message: 'Whisper API Key 未配置' };
+      return Promise.resolve({ valid: false, message: 'Whisper API key 未配置' });
     }
     if (!normalizeSettingString(this.plugin.settings.whisperApiBaseUrl)) {
-      return { valid: false, message: 'Whisper API Base URL 未配置' };
+      return Promise.resolve({ valid: false, message: 'Whisper API base URL 未配置' });
     }
-    return { valid: true, message: '配置有效' };
+    return Promise.resolve({ valid: true, message: '配置有效' });
   }
 
   getSupportedFormats(): string[] {
@@ -148,34 +149,45 @@ export class WhisperProvider implements ITranscriptionProvider {
     const apiKey = normalizeSettingString(this.plugin.settings.whisperApiKey);
     const mimeType = options.mimeType || 'audio/webm';
 
-    const formData = new FormData();
-    formData.append(
-      'file',
-      new Blob([audioBuffer], { type: mimeType }),
-      options.fileName || `audio.${mimeExtension(mimeType)}`,
-    );
-    formData.append('model', this.plugin.settings.whisperModel || 'whisper-1');
-    formData.append('response_format', 'verbose_json');
-
     const language = options.language || this.plugin.settings.transcriptionLanguage;
-    if (language && language !== 'auto') {
-      formData.append('language', language);
-    }
+    const boundary = `----LectureRecorderBoundary${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
+    const body = buildMultipartFormData([
+      {
+        name: 'file',
+        fileName: options.fileName || `audio.${mimeExtension(mimeType)}`,
+        contentType: mimeType,
+        data: audioBuffer,
+      },
+      {
+        name: 'model',
+        data: this.plugin.settings.whisperModel || 'whisper-1',
+      },
+      {
+        name: 'response_format',
+        data: 'verbose_json',
+      },
+      ...(language && language !== 'auto'
+        ? [{ name: 'language', data: language }]
+        : []),
+    ], boundary);
 
-    const response = await fetch(url, {
+    const response = await requestUrl({
+      url,
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
       },
-      body: formData,
+      body,
+      throw: false,
     });
 
-    if (!response.ok) {
-      const detail = await response.text();
-      throw new Error(`Whisper API 请求失败 (${response.status}): ${detail || response.statusText}`);
+    if (response.status >= 400) {
+      const detail = response.text || '请求失败';
+      throw new Error(`Whisper API 请求失败 (${response.status}): ${detail}`);
     }
 
-    return await response.json() as WhisperResponsePayload;
+    return normalizeWhisperPayload(response.json);
   }
 
   private extractSegments(payload: WhisperResponsePayload, offset: number): TranscriptionSegment[] {
@@ -218,4 +230,51 @@ function mimeExtension(mimeType: string): string {
 
 function normalizeSettingString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+interface MultipartPart {
+  name: string;
+  data: string | ArrayBuffer;
+  fileName?: string;
+  contentType?: string;
+}
+
+function buildMultipartFormData(parts: MultipartPart[], boundary: string): ArrayBuffer {
+  const encoder = new TextEncoder();
+  const chunks: Uint8Array[] = [];
+
+  for (const part of parts) {
+    chunks.push(encoder.encode(`--${boundary}\r\n`));
+    if (part.fileName) {
+      chunks.push(encoder.encode(
+        `Content-Disposition: form-data; name="${part.name}"; filename="${part.fileName}"\r\n`,
+      ));
+      chunks.push(encoder.encode(`Content-Type: ${part.contentType || 'application/octet-stream'}\r\n\r\n`));
+      chunks.push(typeof part.data === 'string' ? encoder.encode(part.data) : new Uint8Array(part.data));
+      chunks.push(encoder.encode('\r\n'));
+      continue;
+    }
+
+    chunks.push(encoder.encode(`Content-Disposition: form-data; name="${part.name}"\r\n\r\n`));
+    chunks.push(encoder.encode(typeof part.data === 'string' ? part.data : ''));
+    chunks.push(encoder.encode('\r\n'));
+  }
+
+  chunks.push(encoder.encode(`--${boundary}--\r\n`));
+
+  const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const output = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    output.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return output.buffer;
+}
+
+function normalizeWhisperPayload(payload: unknown): WhisperResponsePayload {
+  if (payload && typeof payload === 'object') {
+    return payload as WhisperResponsePayload;
+  }
+  throw new Error('Whisper API 返回了无效响应');
 }

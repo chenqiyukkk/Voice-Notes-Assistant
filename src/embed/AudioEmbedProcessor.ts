@@ -267,16 +267,16 @@ export class AudioEmbedProcessor {
     audio.addEventListener('ended', () => {
       playBtn.textContent = '▶';
       playBtn.removeClass('playing');
-      progressFill.style.width = '0%';
-      progressHandle.style.left = '0%';
+      progressFill.setCssProps({ width: '0%' });
+      progressHandle.setCssProps({ left: '0%' });
     });
 
     // 时间更新
     audio.addEventListener('timeupdate', () => {
       if (!audio.duration || isNaN(audio.duration)) return;
       const pct = (audio.currentTime / audio.duration) * 100;
-      progressFill.style.width = `${pct}%`;
-      progressHandle.style.left = `${pct}%`;
+      progressFill.setCssProps({ width: `${pct}%` });
+      progressHandle.setCssProps({ left: `${pct}%` });
       timeEl.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
     });
 
@@ -321,35 +321,39 @@ export class AudioEmbedProcessor {
     });
 
     // 转写按钮（Phase 3 实现具体逻辑）
-    transcribeBtn.addEventListener('click', async () => {
-      const runResult = await this.plugin.transcribeAudioFile(params.file);
-      if (runResult?.result?.fullText) {
-        transcriptPanel.detailsEl.open = true;
-        this.applyTranscriptionToPanel(runResult.result, transcriptPanel);
-      }
-      if (!destroyed && !runResult?.result) {
-        void this.refreshTranscriptPanel(params.file, transcriptPanel);
-      }
+    transcribeBtn.addEventListener('click', () => {
+      void (async () => {
+        const runResult = await this.plugin.transcribeAudioFile(params.file);
+        if (runResult?.result?.fullText) {
+          transcriptPanel.detailsEl.open = true;
+          this.applyTranscriptionToPanel(runResult.result, transcriptPanel);
+        }
+        if (!destroyed && !runResult?.result) {
+          void this.refreshTranscriptPanel(params.file, transcriptPanel);
+        }
+      })();
     });
 
     // 总结按钮
-    summarizeBtn.addEventListener('click', async () => {
-      summarizeBtn.disabled = true;
-      let generatedSummary: string | null = null;
-      try {
-        generatedSummary = await this.plugin.summarizeAudioFile(params.file, undefined, sourcePath);
-        if (!destroyed && generatedSummary?.trim()) {
-          summaryPanel.detailsEl.open = true;
-          this.applySummaryToPanel(generatedSummary, summaryPanel);
-        }
-      } finally {
-        if (!destroyed) {
-          summarizeBtn.disabled = false;
-          if (!generatedSummary?.trim()) {
-            void this.refreshSummaryPanel(params.file, summaryPanel);
+    summarizeBtn.addEventListener('click', () => {
+      void (async () => {
+        summarizeBtn.disabled = true;
+        let generatedSummary: string | null = null;
+        try {
+          generatedSummary = await this.plugin.summarizeAudioFile(params.file, undefined, sourcePath);
+          if (!destroyed && generatedSummary?.trim()) {
+            summaryPanel.detailsEl.open = true;
+            this.applySummaryToPanel(generatedSummary, summaryPanel);
+          }
+        } finally {
+          if (!destroyed) {
+            summarizeBtn.disabled = false;
+            if (!generatedSummary?.trim()) {
+              void this.refreshSummaryPanel(params.file, summaryPanel);
+            }
           }
         }
-      }
+      })();
     });
 
     return () => {
@@ -436,7 +440,7 @@ export class AudioEmbedProcessor {
   }
 
   private createTranscriptPanel(container: HTMLElement): ResultPanel {
-    const detailsEl = container.createEl('details', { cls: 'transcript-collapse' }) as HTMLDetailsElement;
+    const detailsEl = container.createEl('details', { cls: 'transcript-collapse' });
     const summaryEl = detailsEl.createEl('summary', {
       cls: 'transcript-summary',
       text: this.t('player.transcript.emptyTitle'),
@@ -454,7 +458,7 @@ export class AudioEmbedProcessor {
   }
 
   private createSummaryPanel(container: HTMLElement): ResultPanel {
-    const detailsEl = container.createEl('details', { cls: 'summary-collapse' }) as HTMLDetailsElement;
+    const detailsEl = container.createEl('details', { cls: 'summary-collapse' });
     const summaryEl = detailsEl.createEl('summary', {
       cls: 'summary-summary',
       text: this.t('player.summary.emptyTitle'),

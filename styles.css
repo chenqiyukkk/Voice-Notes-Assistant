@@ -367,6 +367,10 @@
   white-space: nowrap;
 }
 
+.waveform-status.is-hidden {
+  display: none;
+}
+
 /* 播放器控制区 */
 .player-controls {
   display: flex;

@@ -1,4 +1,5 @@
 import { createHash, createHmac } from 'crypto';
+import { requestUrl } from 'obsidian';
 import type LectureRecorderPlugin from '../main';
 import { convertToWav16k } from '../utils/audioUtils';
 import { sleep } from '../utils/timeUtils';
@@ -31,14 +32,14 @@ export class XfyunProvider implements ITranscriptionProvider {
     this.plugin = plugin;
   }
 
-  async validateConfig(): Promise<ProviderValidationResult> {
+  validateConfig(): Promise<ProviderValidationResult> {
     if (!normalizeSettingString(this.plugin.settings.xfyunAppId)) {
-      return { valid: false, message: '讯飞 App ID 未配置' };
+      return Promise.resolve({ valid: false, message: '讯飞 App ID 未配置' });
     }
     if (!normalizeSettingString(this.plugin.settings.xfyunSecretKey)) {
-      return { valid: false, message: '讯飞 Secret Key 未配置' };
+      return Promise.resolve({ valid: false, message: '讯飞 Secret key 未配置' });
     }
-    return { valid: true, message: '配置有效' };
+    return Promise.resolve({ valid: true, message: '配置有效' });
   }
 
   getSupportedFormats(): string[] {
@@ -188,17 +189,20 @@ export class XfyunProvider implements ITranscriptionProvider {
     });
     const url = `${this.apiBaseUrl}/${action}?${query.toString()}`;
 
-    const response = await fetch(url, {
+    const requestBody = options?.body ? await options.body.arrayBuffer() : undefined;
+    const response = await requestUrl({
+      url,
       method: 'POST',
-      body: options?.body,
+      body: requestBody,
+      throw: false,
     });
 
-    if (!response.ok) {
-      const detail = await response.text();
-      throw new Error(`讯飞 ${action} 请求失败 (${response.status}): ${detail || response.statusText}`);
+    if (response.status >= 400) {
+      const detail = response.text || '请求失败';
+      throw new Error(`讯飞 ${action} 请求失败 (${response.status}): ${detail}`);
     }
 
-    const payload = await response.json() as XfyunApiResponse;
+    const payload = normalizeXfyunPayload(response.json);
     const code = typeof payload.ok === 'number'
       ? payload.ok
       : (typeof payload.err_no === 'number' ? payload.err_no : 0);
@@ -354,4 +358,11 @@ function estimateDurationFromText(fullText: string): number {
 
 function normalizeSettingString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeXfyunPayload(payload: unknown): XfyunApiResponse {
+  if (payload && typeof payload === 'object') {
+    return payload as XfyunApiResponse;
+  }
+  throw new Error('讯飞接口返回了无效响应');
 }
